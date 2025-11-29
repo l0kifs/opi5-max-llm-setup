@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -25,6 +27,58 @@ class Settings(BaseSettings):
             "{level: <8} | {name}:{function}:{line} - {message} | {extra}"
         ),
         description="Console log format",
+    )
+
+    # API settings
+    api_host: str = Field(default="0.0.0.0", description="API host")
+    api_port: int = Field(default=8000, description="API port")
+
+    # Ollama settings
+    ollama_base_url: str = Field(
+        default="http://localhost:11434", description="Ollama server URL"
+    )
+    ollama_model: str = Field(
+        default="qwen2.5:3b", description="Default Ollama model for inference"
+    )
+    ollama_num_parallel: int = Field(
+        default=1, description="Number of parallel Ollama requests"
+    )
+    ollama_max_loaded_models: int = Field(
+        default=1, description="Maximum number of loaded Ollama models"
+    )
+
+    # Embedding settings
+    embedding_model: str = Field(
+        default="sentence-transformers/all-MiniLM-L6-v2",
+        description="Embedding model for RAG",
+    )
+    embedding_device: str = Field(
+        default="cpu", description="Device for embedding model (cpu/cuda)"
+    )
+
+    # Vector database settings
+    chroma_persist_directory: Path = Field(
+        default=Path("./data/chroma_db"),
+        description="ChromaDB persistence directory",
+    )
+    chroma_collection_name: str = Field(
+        default="documents", description="ChromaDB collection name"
+    )
+
+    # RAG settings
+    chunk_size: int = Field(default=500, description="Text chunk size for splitting")
+    chunk_overlap: int = Field(default=50, description="Overlap between text chunks")
+    retrieval_k: int = Field(
+        default=3, description="Number of documents to retrieve for RAG"
+    )
+
+    # Document upload settings
+    upload_directory: Path = Field(
+        default=Path("./data/uploads"),
+        description="Directory for uploaded documents",
+    )
+    max_upload_size_mb: int = Field(
+        default=50, description="Maximum upload file size in MB"
     )
 
 

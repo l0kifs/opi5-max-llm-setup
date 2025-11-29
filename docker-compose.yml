@@ -1,0 +1,46 @@
+# Docker Compose configuration for Orange Pi 5 Max LLM Setup
+# This file provides an optional containerized deployment
+
+services:
+  # Ollama LLM Server
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    restart: unless-stopped
+    # Note: On ARM64, ensure you use the ARM64 image
+    # The official ollama/ollama image supports ARM64
+    environment:
+      - OLLAMA_NUM_PARALLEL=1
+      - OLLAMA_MAX_LOADED_MODELS=1
+
+  # RAG API Server
+  rag-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rag-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./.env:/app/.env:ro
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - CHROMA_PERSIST_DIRECTORY=/app/data/chroma_db
+      - UPLOAD_DIRECTORY=/app/data/uploads
+    depends_on:
+      - ollama
+    restart: unless-stopped
+    # Memory limit recommendation for Orange Pi 5 Max
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+
+volumes:
+  ollama-data:
+    driver: local
