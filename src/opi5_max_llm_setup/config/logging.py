@@ -1,0 +1,44 @@
+import sys
+
+from loguru import logger
+
+from opi5_max_llm_setup.config.settings import get_settings
+
+settings = get_settings()
+
+_logging_configured = False
+
+
+def setup_logging() -> None:
+    """
+    Configure logging for the application.
+    """
+    global _logging_configured
+    if _logging_configured:
+        return
+
+    # Remove default handler to avoid duplicate logs
+    logger.remove()
+
+    # Console handler - for development/debugging
+    logger.add(
+        sys.stderr,
+        level=settings.logging_level,
+        format=settings.logging_format,
+        colorize=True,
+        backtrace=True,
+        diagnose=True,
+        enqueue=True,
+        catch=True,
+    )
+
+    # Configure common context (can be overridden per module)
+    logger.configure(extra={"app": settings.app_name, "version": settings.app_version})
+
+    # Log startup message
+    logger.info(
+        "Logging system initialized",
+        log_level=settings.logging_level,
+    )
+
+    _logging_configured = True
