@@ -1,0 +1,10 @@
+# This directory is for your documents
+# Add .txt, .pdf, or other document files here
+# The RAG system will process them to create a searchable knowledge base
+
+## Example structure:
+# data/
+#   ├── ml_basics.txt
+#   ├── documentation.pdf
+#   └── research/
+#       └── paper.txt
