@@ -1,9 +1,10 @@
 """API routes for RAG and LLM services."""
 
+from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
 
-from fastapi import APIRouter, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from loguru import logger
 
 from opi5_max_llm_setup.api.models import (
@@ -26,25 +27,22 @@ from opi5_max_llm_setup.rag.rag_pipeline import RAGPipeline
 
 router = APIRouter()
 
-# Global instances (initialized on first request)
-_rag_pipeline: RAGPipeline | None = None
-_ollama_client: OllamaClient | None = None
 
-
+@lru_cache
 def get_rag_pipeline() -> RAGPipeline:
-    """Get or create RAG pipeline instance."""
-    global _rag_pipeline
-    if _rag_pipeline is None:
-        _rag_pipeline = RAGPipeline()
-    return _rag_pipeline
+    """Get or create RAG pipeline instance (cached)."""
+    return RAGPipeline()
 
 
+@lru_cache
 def get_ollama() -> OllamaClient:
-    """Get or create Ollama client instance."""
-    global _ollama_client
-    if _ollama_client is None:
-        _ollama_client = OllamaClient()
-    return _ollama_client
+    """Get or create Ollama client instance (cached)."""
+    return OllamaClient()
+
+
+# Type aliases for dependency injection
+RAGPipelineDep = Annotated[RAGPipeline, Depends(get_rag_pipeline)]
+OllamaClientDep = Annotated[OllamaClient, Depends(get_ollama)]
 
 
 @router.get("/health", response_model=HealthResponse, tags=["Health"])
@@ -60,13 +58,15 @@ def health_check() -> HealthResponse:
 
 
 @router.post("/query", response_model=QueryResponse, tags=["RAG"])
-def query_documents(request: QueryRequest) -> QueryResponse:
+def query_documents(
+    request: QueryRequest,
+    pipeline: RAGPipelineDep,
+) -> QueryResponse:
     """
     Query the RAG pipeline with a question.
 
     The pipeline will search for relevant documents and generate an answer.
     """
-    pipeline = get_rag_pipeline()
     result = pipeline.query(request.question)
 
     return QueryResponse(
@@ -78,14 +78,15 @@ def query_documents(request: QueryRequest) -> QueryResponse:
 
 
 @router.post("/chat", response_model=ChatResponse, tags=["Chat"])
-def chat_with_llm(request: ChatRequest) -> ChatResponse:
+def chat_with_llm(
+    request: ChatRequest,
+    ollama: OllamaClientDep,
+) -> ChatResponse:
     """
     Chat directly with the LLM without RAG context.
 
     Use this for general questions that don't require document context.
     """
-    ollama = get_ollama()
-
     if not ollama.is_available():
         return ChatResponse(
             success=False,
@@ -107,6 +108,7 @@ def chat_with_llm(request: ChatRequest) -> ChatResponse:
 )
 async def upload_document(
     file: UploadFile,
+    pipeline: RAGPipelineDep,
 ) -> DocumentUploadResponse:
     """
     Upload a document to the RAG pipeline.
@@ -142,7 +144,6 @@ async def upload_document(
         raise HTTPException(status_code=500, detail=f"Failed to save file: {e}") from e
 
     # Process document
-    pipeline = get_rag_pipeline()
     result = pipeline.add_document(file_path)
 
     return DocumentUploadResponse(
@@ -155,14 +156,15 @@ async def upload_document(
 
 
 @router.post("/documents/search", response_model=SearchResponse, tags=["Documents"])
-def search_documents(request: SearchRequest) -> SearchResponse:
+def search_documents(
+    request: SearchRequest,
+    pipeline: RAGPipelineDep,
+) -> SearchResponse:
     """
     Search for similar documents without generating an answer.
 
     Returns the most relevant document chunks.
     """
-    pipeline = get_rag_pipeline()
-
     try:
         results = pipeline.search_similar(request.query, k=request.k)
 
@@ -182,16 +184,14 @@ def search_documents(request: SearchRequest) -> SearchResponse:
 
 
 @router.delete("/documents", tags=["Documents"])
-def clear_documents() -> dict[str, str]:
+def clear_documents(pipeline: RAGPipelineDep) -> dict[str, str]:
     """Clear all documents from the RAG pipeline."""
-    pipeline = get_rag_pipeline()
     return pipeline.clear_documents()
 
 
 @router.get("/stats", response_model=StatsResponse, tags=["Info"])
-def get_stats() -> StatsResponse:
+def get_stats(pipeline: RAGPipelineDep) -> StatsResponse:
     """Get RAG pipeline statistics."""
-    pipeline = get_rag_pipeline()
     stats = pipeline.get_stats()
 
     return StatsResponse(
@@ -203,10 +203,8 @@ def get_stats() -> StatsResponse:
 
 
 @router.get("/models", response_model=ModelsResponse, tags=["Models"])
-def list_models() -> ModelsResponse:
+def list_models(ollama: OllamaClientDep) -> ModelsResponse:
     """List available Ollama models."""
-    ollama = get_ollama()
-
     if not ollama.is_available():
         return ModelsResponse(
             success=False,
@@ -230,10 +228,8 @@ def list_models() -> ModelsResponse:
 
 
 @router.get("/models/{model_name}", tags=["Models"])
-def get_model_info(model_name: str) -> dict[str, Any]:
+def get_model_info(model_name: str, ollama: OllamaClientDep) -> dict[str, Any]:
     """Get information about a specific model."""
-    ollama = get_ollama()
-
     if not ollama.is_available():
         raise HTTPException(status_code=503, detail="Ollama server is not available")
 

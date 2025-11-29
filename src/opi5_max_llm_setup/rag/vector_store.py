@@ -113,10 +113,17 @@ class VectorStoreManager:
         Returns:
             Dictionary with collection statistics
         """
-        collection = self.vector_store._collection
+        # Use ChromaDB's public get() method to count documents
+        try:
+            # Get all document IDs to count them
+            result = self.vector_store.get()
+            count = len(result.get("ids", [])) if result else 0
+        except Exception:
+            count = 0
+
         return {
             "name": self.collection_name,
-            "count": collection.count(),
+            "count": count,
         }
 
     def get_retriever(self, k: int | None = None) -> VectorStoreRetriever:

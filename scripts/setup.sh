@@ -8,6 +8,11 @@
 
 set -e
 
+# Configuration - can be overridden by environment variables
+REPO_URL="${REPO_URL:-https://github.com/l0kifs/opi5-max-llm-setup.git}"
+DEFAULT_MODEL="${DEFAULT_MODEL:-qwen2.5:3b}"
+PROJECT_DIR="${PROJECT_DIR:-${HOME}/opi5-max-llm-setup}"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -149,22 +154,18 @@ install_ollama() {
 pull_model() {
     print_header "Pulling Recommended Model"
     
-    local MODEL="qwen2.5:3b"
+    print_msg "Pulling $DEFAULT_MODEL (this may take several minutes)..."
     
-    print_msg "Pulling $MODEL (this may take several minutes)..."
-    
-    if ollama pull "$MODEL"; then
-        print_msg "Model $MODEL pulled successfully ✓"
+    if ollama pull "$DEFAULT_MODEL"; then
+        print_msg "Model $DEFAULT_MODEL pulled successfully ✓"
     else
-        print_warn "Failed to pull model. You can try manually with: ollama pull $MODEL"
+        print_warn "Failed to pull model. You can try manually with: ollama pull $DEFAULT_MODEL"
     fi
 }
 
 # Setup project directory
 setup_project() {
     print_header "Setting Up Project"
-    
-    PROJECT_DIR="${HOME}/opi5-max-llm-setup"
     
     if [[ -d "$PROJECT_DIR" ]]; then
         print_msg "Project directory already exists: $PROJECT_DIR"
@@ -177,8 +178,8 @@ setup_project() {
             mkdir -p "$PROJECT_DIR"
             cd "$PROJECT_DIR"
             
-            print_msg "Cloning repository..."
-            git clone https://github.com/l0kifs/opi5-max-llm-setup.git .
+            print_msg "Cloning repository from $REPO_URL..."
+            git clone "$REPO_URL" .
         fi
     fi
     
@@ -200,7 +201,7 @@ setup_project() {
 install_python_deps() {
     print_header "Installing Python Dependencies"
     
-    cd "${HOME}/opi5-max-llm-setup"
+    cd "$PROJECT_DIR"
     
     # Install dependencies with UV
     print_msg "Installing Python packages (this may take several minutes)..."
@@ -218,10 +219,10 @@ print_completion() {
     echo -e "
 ${GREEN}Your Orange Pi 5 Max LLM setup is complete!${NC}
 
-${BLUE}Project Location:${NC} ${HOME}/opi5-max-llm-setup
+${BLUE}Project Location:${NC} ${PROJECT_DIR}
 
 ${BLUE}To start the API server:${NC}
-  cd ${HOME}/opi5-max-llm-setup
+  cd ${PROJECT_DIR}
   source .venv/bin/activate  # or: source \$(uv python find)/bin/activate
   uv run opi5-server
 
@@ -238,7 +239,7 @@ ${BLUE}API Endpoints:${NC}
 ${BLUE}Ollama Commands:${NC}
   - List models:   ollama list
   - Pull model:    ollama pull <model_name>
-  - Run chat:      ollama run qwen2.5:3b
+  - Run chat:      ollama run $DEFAULT_MODEL
 
 ${BLUE}Recommended Models for 16GB RAM:${NC}
   - qwen2.5:3b       (fast, efficient)

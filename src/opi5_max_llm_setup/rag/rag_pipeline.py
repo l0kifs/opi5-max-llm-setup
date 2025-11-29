@@ -101,7 +101,7 @@ class RAGPipeline:
                 "chunks_added": len(chunks),
                 "document_ids": ids,
             }
-        except ValueError as e:
+        except (ValueError, OSError, RuntimeError) as e:
             logger.error(f"Error adding document: {e}")
             return {
                 "success": False,
