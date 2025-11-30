@@ -44,15 +44,14 @@ cd rknn-llm
 
 Pre-converted RKLLM models are available from the official RKLLM Model Zoo:
 
-```bash
-# Download models from the official RKLLM Model Zoo
-# URL: https://console.box.lenovo.com/l/l0tXb8
-# Fetch code: rkllm
+1. Open your web browser and navigate to: https://console.box.lenovo.com/l/l0tXb8
+2. Enter the fetch code: `rkllm`
+3. Download the desired model files (`.rkllm` format) and demo executables
+4. Transfer the files to your Orange Pi 5 Max
 
-# The model zoo includes:
-# - quickstart/ directory with demo executables
-# - Pre-converted .rkllm models for various LLMs
-```
+The model zoo includes:
+- `quickstart/` directory with pre-built demo executables for Linux/Android
+- Pre-converted `.rkllm` models for various LLMs
 
 ### Supported Models
 
@@ -71,17 +70,32 @@ Pre-converted RKLLM models are available from the official RKLLM Model Zoo:
 
 ### Running Models
 
-```bash
-# Push demo and model to device
-adb push ./demo_Linux_aarch64 /data
-adb push model.rkllm /data/demo_Linux_aarch64
+**Option 1: Direct on Orange Pi (Recommended for Ubuntu setup)**
 
-# Enter the device and set up environment
-adb shell
-cd /data/demo_Linux_aarch64
+```bash
+# Copy demo and model files to Orange Pi
+# From your PC:
+scp -r demo_Linux_aarch64 orange@orangepi-ip:~/
+scp model.rkllm orange@orangepi-ip:~/demo_Linux_aarch64/
+
+# On Orange Pi:
+cd ~/demo_Linux_aarch64
 export LD_LIBRARY_PATH=./lib
 
 # Run the demo
+./demo model.rkllm
+```
+
+**Option 2: Via ADB (for development/debugging)**
+
+```bash
+# If using ADB to connect to the device
+adb push ./demo_Linux_aarch64 /data
+adb push model.rkllm /data/demo_Linux_aarch64
+
+adb shell
+cd /data/demo_Linux_aarch64
+export LD_LIBRARY_PATH=./lib
 ./demo model.rkllm
 ```
 
@@ -110,17 +124,29 @@ If your desired model isn't available pre-converted, you can convert it yourself
 - **Model conversion must be done on x86_64 Linux**, not on the Orange Pi
 - The Orange Pi is used only for inference
 
-### Using Docker for Conversion
+### Installing RKLLM-Toolkit
 
-```bash
-# On your x86_64 Linux PC
-# Download the RKLLM-Toolkit from the official SDK
-# URL: https://console.zbox.filez.com/l/RJJDmB
-# Fetch code: rkllm
+On your x86_64 Linux PC:
 
-# Install the toolkit package
-pip install rkllm-toolkit/packages/rkllm_toolkit-1.2.x-cpXX-cpXX-linux_x86_64.whl
-```
+1. Download the RKLLM-Toolkit from the official SDK:
+   - URL: https://console.zbox.filez.com/l/RJJDmB
+   - Fetch code: `rkllm`
+
+2. Extract the downloaded SDK and install the toolkit:
+   ```bash
+   # Navigate to the toolkit packages directory
+   cd rkllm-toolkit/packages/
+   
+   # List available wheel files and choose the one matching your Python version
+   ls rkllm_toolkit*.whl
+   
+   # Install the toolkit (example for Python 3.10)
+   # Replace the filename with the one matching your Python version
+   pip install rkllm_toolkit-1.2.3-cp310-cp310-linux_x86_64.whl
+   ```
+
+   **Note**: The wheel file name format is `rkllm_toolkit-{version}-cp{pyver}-cp{pyver}-linux_x86_64.whl`
+   where `{version}` is the SDK version and `{pyver}` is your Python version (39, 310, 311, or 312).
 
 ### Conversion Steps
 
