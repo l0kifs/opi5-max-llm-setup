@@ -1,102 +1,109 @@
-"""RKLLM client for NPU-accelerated LLM inference on RK3588."""
+"""RKLLM client for NPU-accelerated LLM inference via RKLLama server.
 
-from pathlib import Path
+RKLLama is an Ollama-compatible server that runs LLMs on the RK3588 NPU.
+Since it implements the same API as Ollama, we can reuse similar HTTP patterns.
+See: https://github.com/NotPunchnox/rkllama
+"""
+
+from http import HTTPStatus
 from typing import Any
 
+import httpx
+from langchain_core.language_models import BaseLLM
+from langchain_ollama import OllamaLLM
 from loguru import logger
 
 from opi5_max_llm_setup.config.settings import get_settings
 
 
 class RKLLMNotAvailableError(RuntimeError):
-    """Raised when RKLLM runtime is not available."""
+    """Raised when RKLLama server is not available."""
 
-    def __init__(self, message: str = "RKLLM runtime is not available") -> None:
+    def __init__(self, message: str = "RKLLama server is not available") -> None:
         """Initialize the error with a message."""
         super().__init__(message)
 
 
 class RKLLMClient:
-    """Client for RKLLM NPU-accelerated LLM inference.
+    """Client for RKLLama NPU-accelerated LLM inference.
 
-    This client provides an interface for running LLM inference on the RK3588's
-    Neural Processing Unit (NPU) using the RKLLM runtime.
+    RKLLama provides an Ollama-compatible API for running LLMs on the RK3588 NPU.
+    This client connects to the RKLLama server via HTTP.
 
     Note:
-        RKLLM requires:
-        - Pre-converted .rkllm model files from the RKLLM Model Zoo
-        - RKLLM runtime libraries from the rknn-llm repository
-        - Running on RK3588 hardware with NPU drivers
+        RKLLama requires:
+        - RKLLama server running (default port 8080)
+        - Pre-converted .rkllm model files loaded in the server
+        - Running on RK3588 hardware with NPU access (privileged Docker mode)
     """
 
     _instance: "RKLLMClient | None" = None
     _initialized: bool = False
+    _llm: BaseLLM | None = None
 
     def __new__(cls) -> "RKLLMClient":
-        """Singleton pattern to reuse RKLLM instance."""
+        """Singleton pattern to reuse RKLLama client instance."""
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
 
     def __init__(self) -> None:
-        """Initialize RKLLM client."""
+        """Initialize RKLLama client."""
         if self._initialized:
             return
 
         settings = get_settings()
-        self.model_path = Path(settings.rkllm_model_path)
-        self.lib_path = Path(settings.rkllm_lib_path)
+        self.base_url = settings.rkllm_base_url
+        self.model = settings.rkllm_model
 
-        logger.info(f"Initializing RKLLM client with model: {self.model_path}")
-
-        self._available = self._check_availability()
+        logger.info(f"Initializing RKLLama client: {self.base_url}")
+        self._llm = self._create_llm()
         self._initialized = True
 
-    def _check_availability(self) -> bool:
-        """Check if RKLLM runtime and model are available.
+    def _create_llm(self) -> BaseLLM:
+        """Create the LangChain LLM instance for RKLLama.
+
+        Since RKLLama is Ollama API-compatible, we can use OllamaLLM directly.
 
         Returns:
-            True if RKLLM is ready for inference
+            OllamaLLM instance configured for RKLLama
         """
-        # Check if model file exists
-        if not self.model_path.exists():
-            logger.warning(f"RKLLM model not found: {self.model_path}")
-            logger.info(
-                "Download models from RKLLM Model Zoo: "
-                "https://console.box.lenovo.com/l/l0tXb8 (fetch code: rkllm)"
-            )
-            return False
+        return OllamaLLM(
+            model=self.model,
+            base_url=self.base_url,
+        )
 
-        # Check if library path exists
-        if not self.lib_path.exists():
-            logger.warning(f"RKLLM library path not found: {self.lib_path}")
-            logger.info(
-                "Clone RKLLM repository: git clone https://github.com/airockchip/rknn-llm.git"
-            )
-            return False
+    @property
+    def llm(self) -> BaseLLM:
+        """Get the LangChain LLM instance.
 
-        # Check for NPU device
-        npu_device = Path("/dev/rknpu_dev")
-        if not npu_device.exists():
-            logger.warning("NPU device not found at /dev/rknpu_dev")
-            logger.info(
-                "Ensure you are running on RK3588 hardware with NPU drivers installed"
-            )
-            return False
+        Returns:
+            LLM instance
 
-        logger.info("RKLLM runtime available")
-        return True
+        Raises:
+            RKLLMNotAvailableError: If LLM is not initialized
+        """
+        if self._llm is None:
+            raise RKLLMNotAvailableError("RKLLama LLM not initialized")
+        return self._llm
 
     def is_available(self) -> bool:
-        """Check if RKLLM is available for inference.
+        """Check if RKLLama server is available.
+
+        Pings the /api/tags endpoint to verify server connectivity.
 
         Returns:
-            True if RKLLM runtime and model are ready
+            True if RKLLama server is reachable
         """
-        return self._available
+        try:
+            with httpx.Client(timeout=5.0) as client:
+                response = client.get(f"{self.base_url}/api/tags")
+                return response.status_code == HTTPStatus.OK
+        except httpx.RequestError:
+            return False
 
     def generate(self, prompt: str) -> str:
-        """Generate a response using RKLLM NPU inference.
+        """Generate a response using RKLLama NPU inference.
 
         Args:
             prompt: Input prompt
@@ -105,65 +112,55 @@ class RKLLMClient:
             Generated response text
 
         Raises:
-            RKLLMNotAvailableError: If RKLLM is not available
+            RKLLMNotAvailableError: If RKLLama is not available
         """
-        if not self._available:
+        if not self.is_available():
             raise RKLLMNotAvailableError(
-                "RKLLM is not available. Ensure model file exists at "
-                f"{self.model_path} and RKLLM libraries are at {self.lib_path}. "
-                "See docs/npu-setup.md for setup instructions."
+                f"RKLLama server is not available at {self.base_url}. "
+                "Ensure RKLLama is running. See docs/npu-setup.md for setup."
             )
 
-        logger.debug(f"RKLLM generating response for prompt: {prompt[:50]}...")
-
-        # TODO: Implement actual RKLLM inference when runtime is available
-        # This requires integration with the RKLLM C++ runtime via ctypes or
-        # a Python wrapper. For now, return a placeholder indicating setup needed.
-        raise RKLLMNotAvailableError(
-            "RKLLM inference not yet implemented. "
-            "Use Ollama backend (LLM_BACKEND=ollama) or contribute RKLLM integration."
-        )
+        logger.debug(f"RKLLama generating response for prompt: {prompt[:50]}...")
+        response = self.llm.invoke(prompt)
+        return str(response)
 
     def get_model_info(self, model_name: str | None = None) -> dict[str, Any] | None:
-        """Get information about the loaded RKLLM model.
+        """Get information about a specific model from RKLLama.
 
         Args:
-            model_name: Optional model name (for API compatibility, ignored for RKLLM
-                       as only one model is loaded at a time)
+            model_name: Model name (defaults to configured model)
 
         Returns:
             Model information dictionary or None if not available
         """
-        if not self._available:
-            return None
-
-        return {
-            "name": model_name or self.model_path.stem,
-            "model_path": str(self.model_path),
-            "lib_path": str(self.lib_path),
-            "backend": "rkllm",
-            "accelerator": "NPU (RK3588)",
-        }
+        model_name = model_name or self.model
+        try:
+            with httpx.Client(timeout=10.0) as client:
+                response = client.post(
+                    f"{self.base_url}/api/show",
+                    json={"name": model_name},
+                )
+                if response.status_code == HTTPStatus.OK:
+                    data = dict(response.json())
+                    data["backend"] = "rkllm"
+                    data["accelerator"] = "NPU (RK3588)"
+                    return data
+        except httpx.RequestError as e:
+            logger.error(f"Error getting model info from RKLLama: {e}")
+        return None
 
     def list_models(self) -> list[dict[str, Any]]:
-        """List available RKLLM models in the models directory.
+        """List available models from RKLLama server.
 
         Returns:
             List of model information dictionaries
         """
-        models: list[dict[str, Any]] = []
-        models_dir = self.model_path.parent
-
-        if not models_dir.exists():
-            return models
-
-        for model_file in models_dir.glob("*.rkllm"):
-            models.append(
-                {
-                    "name": model_file.stem,
-                    "path": str(model_file),
-                    "size": model_file.stat().st_size if model_file.exists() else 0,
-                }
-            )
-
-        return models
+        try:
+            with httpx.Client(timeout=10.0) as client:
+                response = client.get(f"{self.base_url}/api/tags")
+                if response.status_code == HTTPStatus.OK:
+                    data = response.json()
+                    return list(data.get("models", []))
+        except httpx.RequestError as e:
+            logger.error(f"Error listing models from RKLLama: {e}")
+        return []

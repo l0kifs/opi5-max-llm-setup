@@ -122,7 +122,7 @@ def chat_with_llm(
             if not rkllm.is_available():
                 return ChatResponse(
                     success=False,
-                    error="RKLLM is not available. Check model path and NPU drivers.",
+                    error="RKLLama is not available. Check server and NPU.",
                 )
             response = rkllm.generate(request.prompt)
         else:
@@ -137,6 +137,7 @@ def chat_with_llm(
     except (
         LLMNotInitializedError,
         RKLLMNotAvailableError,
+        httpx.HTTPStatusError,
         httpx.RequestError,
         RuntimeError,
     ) as e:
@@ -259,7 +260,7 @@ def list_models(
             if not rkllm.is_available():
                 return ModelsResponse(
                     success=False,
-                    error="RKLLM is not available. Check model path and NPU drivers.",
+                    error="RKLLama is not available. Check server and NPU.",
                 )
             models_data = rkllm.list_models()
             models = [
@@ -286,7 +287,7 @@ def list_models(
             ]
 
         return ModelsResponse(success=True, models=models)
-    except (httpx.RequestError, KeyError, RuntimeError) as e:
+    except (httpx.HTTPStatusError, httpx.RequestError, KeyError, RuntimeError) as e:
         logger.error(f"Error listing models: {e}")
         return ModelsResponse(success=False, error=str(e))
 
@@ -301,26 +302,33 @@ def get_model_info(
     settings = get_settings()
     backend = settings.llm_backend
 
-    if backend == LLMBackend.RKLLM:
-        if not rkllm.is_available():
-            raise HTTPException(
-                status_code=503,
-                detail="RKLLM is not available",
-            )
-        info = rkllm.get_model_info(model_name)
-        if info is None:
-            raise HTTPException(
-                status_code=404, detail=f"Model '{model_name}' not found"
-            )
-        return info
-    else:
-        if not ollama.is_available():
-            raise HTTPException(
-                status_code=503, detail="Ollama server is not available"
-            )
-        info = ollama.get_model_info(model_name)
-        if info is None:
-            raise HTTPException(
-                status_code=404, detail=f"Model '{model_name}' not found"
-            )
-        return info
+    try:
+        if backend == LLMBackend.RKLLM:
+            if not rkllm.is_available():
+                raise HTTPException(
+                    status_code=503,
+                    detail="RKLLama is not available",
+                )
+            info = rkllm.get_model_info(model_name)
+            if info is None:
+                raise HTTPException(
+                    status_code=404, detail=f"Model '{model_name}' not found"
+                )
+            return info
+        else:
+            if not ollama.is_available():
+                raise HTTPException(
+                    status_code=503, detail="Ollama server is not available"
+                )
+            info = ollama.get_model_info(model_name)
+            if info is None:
+                raise HTTPException(
+                    status_code=404, detail=f"Model '{model_name}' not found"
+                )
+            return info
+    except (httpx.HTTPStatusError, httpx.RequestError) as e:
+        logger.error(f"Error getting model info: {e}")
+        raise HTTPException(
+            status_code=503,
+            detail=f"Failed to get model info: {e}",
+        ) from e

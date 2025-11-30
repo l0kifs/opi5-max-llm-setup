@@ -5,13 +5,15 @@ from typing import Any
 
 import httpx
 from langchain_core.documents import Document
+from langchain_core.language_models import BaseLLM
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 from loguru import logger
 
-from opi5_max_llm_setup.config.settings import get_settings
+from opi5_max_llm_setup.config.settings import LLMBackend, get_settings
 from opi5_max_llm_setup.llm.ollama_client import LLMNotInitializedError, OllamaClient
+from opi5_max_llm_setup.llm.rkllm_client import RKLLMClient, RKLLMNotAvailableError
 from opi5_max_llm_setup.rag.document_loader import (
     DocumentLoader,
     UnsupportedFileTypeError,
@@ -44,6 +46,7 @@ class RAGPipeline:
         self.document_loader = DocumentLoader()
         self.vector_store_manager = VectorStoreManager()
         self._ollama_client: OllamaClient | None = None
+        self._rkllm_client: RKLLMClient | None = None
         self._rag_chain: Any | None = None
 
     @property
@@ -52,6 +55,28 @@ class RAGPipeline:
         if self._ollama_client is None:
             self._ollama_client = OllamaClient()
         return self._ollama_client
+
+    @property
+    def rkllm_client(self) -> RKLLMClient:
+        """Get or create RKLLama client."""
+        if self._rkllm_client is None:
+            self._rkllm_client = RKLLMClient()
+        return self._rkllm_client
+
+    @property
+    def llm(self) -> BaseLLM:
+        """Get the LangChain LLM based on configured backend.
+
+        Returns:
+            LangChain-compatible LLM instance
+
+        Note:
+            Since RKLLama is Ollama API-compatible, both backends use OllamaLLM
+            but with different base URLs.
+        """
+        if self.settings.llm_backend == LLMBackend.RKLLM:
+            return self.rkllm_client.llm
+        return self.ollama_client.llm
 
     @property
     def rag_chain(self) -> Any:
@@ -71,7 +96,7 @@ class RAGPipeline:
                     "question": RunnablePassthrough(),
                 }
                 | prompt
-                | self.ollama_client.llm
+                | self.llm
                 | StrOutputParser()
             )
         return self._rag_chain
@@ -185,7 +210,12 @@ class RAGPipeline:
                 }
                 for doc in source_docs_raw
             ]
-        except (LLMNotInitializedError, httpx.RequestError, RuntimeError) as e:
+        except (
+            LLMNotInitializedError,
+            RKLLMNotAvailableError,
+            httpx.RequestError,
+            RuntimeError,
+        ) as e:
             logger.error(f"Error during RAG query: {e}")
             return {
                 "success": False,
@@ -219,12 +249,20 @@ class RAGPipeline:
             Dictionary with pipeline statistics
         """
         collection_stats = self.vector_store_manager.get_collection_stats()
-        ollama_available = self.ollama_client.is_available()
+
+        # Get LLM availability based on configured backend
+        if self.settings.llm_backend == LLMBackend.RKLLM:
+            llm_available = self.rkllm_client.is_available()
+            model = self.settings.rkllm_model
+        else:
+            llm_available = self.ollama_client.is_available()
+            model = self.settings.ollama_model
 
         return {
             "collection": collection_stats,
-            "ollama_available": ollama_available,
-            "model": self.settings.ollama_model,
+            "llm_backend": self.settings.llm_backend.value,
+            "llm_available": llm_available,
+            "model": model,
             "embedding_model": self.settings.embedding_model,
         }
 

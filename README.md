@@ -202,17 +202,17 @@ uv run uvicorn opi5_max_llm_setup.api.server:app --host 0.0.0.0 --port 8000 --re
 
 ### API Endpoints
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/docs` | GET | OpenAPI documentation |
-| `/api/v1/health` | GET | Health check |
-| `/api/v1/query` | POST | Query RAG pipeline |
-| `/api/v1/chat` | POST | Direct LLM chat |
-| `/api/v1/documents/upload` | POST | Upload document |
-| `/api/v1/documents/search` | POST | Search documents |
-| `/api/v1/documents` | DELETE | Clear all documents |
-| `/api/v1/stats` | GET | Pipeline statistics |
-| `/api/v1/models` | GET | List available models |
+| Endpoint                   | Method | Description           |
+| -------------------------- | ------ | --------------------- |
+| `/docs`                    | GET    | OpenAPI documentation |
+| `/api/v1/health`           | GET    | Health check          |
+| `/api/v1/query`            | POST   | Query RAG pipeline    |
+| `/api/v1/chat`             | POST   | Direct LLM chat       |
+| `/api/v1/documents/upload` | POST   | Upload document       |
+| `/api/v1/documents/search` | POST   | Search documents      |
+| `/api/v1/documents`        | DELETE | Clear all documents   |
+| `/api/v1/stats`            | GET    | Pipeline statistics   |
+| `/api/v1/models`           | GET    | List available models |
 
 ### Example API Usage
 
@@ -270,39 +270,39 @@ print(response.json()["answer"])
 
 Download pre-converted models from [RKLLM Model Zoo](https://console.box.lenovo.com/l/l0tXb8) (fetch code: `rkllm`).
 
-| Model | Size | Dtype | Best For | Tokens/sec |
-|-------|------|-------|----------|------------|
-| Qwen2 0.5B | 0.5B | w8a8 | Very fast, basic tasks | 42.6 |
-| TinyLLAMA 1.1B | 1.1B | w8a8 | Fast responses | 24.5 |
-| Qwen2.5 1.5B | 1.5B | w8a8 | General tasks | 16.3 |
-| InternLM2 1.8B | 1.8B | w8a8 | Research models | 15.6 |
-| Gemma2 2B | 2B | w8a8 | Good quality | 9.8 |
-| Phi3 3.8B | 3.8B | w8a8 | Coding, reasoning | 7.5 |
-| MiniCPM3 4B | 4B | w8a8 | Efficient models | 6.0 |
-| ChatGLM3 6B | 6B | w8a8 | Chinese + English | 4.9 |
+| Model          | Size | Dtype | Best For               | Tokens/sec |
+| -------------- | ---- | ----- | ---------------------- | ---------- |
+| Qwen2 0.5B     | 0.5B | w8a8  | Very fast, basic tasks | 42.6       |
+| TinyLLAMA 1.1B | 1.1B | w8a8  | Fast responses         | 24.5       |
+| Qwen2.5 1.5B   | 1.5B | w8a8  | General tasks          | 16.3       |
+| InternLM2 1.8B | 1.8B | w8a8  | Research models        | 15.6       |
+| Gemma2 2B      | 2B   | w8a8  | Good quality           | 9.8        |
+| Phi3 3.8B      | 3.8B | w8a8  | Coding, reasoning      | 7.5        |
+| MiniCPM3 4B    | 4B   | w8a8  | Efficient models       | 6.0        |
+| ChatGLM3 6B    | 6B   | w8a8  | Chinese + English      | 4.9        |
 
 ### Ollama Models (Alternative, CPU-Based)
 
 #### Small Models (2-4GB RAM, Fast)
-| Model | Command | Best For |
-|-------|---------|----------|
-| `qwen2.5:3b` | `ollama pull qwen2.5:3b` | General tasks, fast |
-| `phi3:mini` | `ollama pull phi3:mini` | Coding, reasoning |
-| `gemma2:2b` | `ollama pull gemma2:2b` | Very fast responses |
-| `llama3.2:3b` | `ollama pull llama3.2:3b` | Good all-rounder |
+| Model         | Command                   | Best For            |
+| ------------- | ------------------------- | ------------------- |
+| `qwen2.5:3b`  | `ollama pull qwen2.5:3b`  | General tasks, fast |
+| `phi3:mini`   | `ollama pull phi3:mini`   | Coding, reasoning   |
+| `gemma2:2b`   | `ollama pull gemma2:2b`   | Very fast responses |
+| `llama3.2:3b` | `ollama pull llama3.2:3b` | Good all-rounder    |
 
 #### Medium Models (5-8GB RAM, Better Quality)
-| Model | Command | Best For |
-|-------|---------|----------|
-| `mistral:7b-instruct-q4_0` | `ollama pull mistral:7b-instruct-q4_0` | High-quality responses |
-| `llama3.1:8b-instruct-q4_0` | `ollama pull llama3.1:8b-instruct-q4_0` | Latest capabilities |
-| `qwen2.5:7b-instruct-q4_0` | `ollama pull qwen2.5:7b-instruct-q4_0` | Multilingual |
+| Model                       | Command                                 | Best For               |
+| --------------------------- | --------------------------------------- | ---------------------- |
+| `mistral:7b-instruct-q4_0`  | `ollama pull mistral:7b-instruct-q4_0`  | High-quality responses |
+| `llama3.1:8b-instruct-q4_0` | `ollama pull llama3.1:8b-instruct-q4_0` | Latest capabilities    |
+| `qwen2.5:7b-instruct-q4_0`  | `ollama pull qwen2.5:7b-instruct-q4_0`  | Multilingual           |
 
 #### Specialized Models
-| Model | Command | Best For |
-|-------|---------|----------|
+| Model                   | Command                             | Best For        |
+| ----------------------- | ----------------------------------- | --------------- |
 | `codellama:7b-instruct` | `ollama pull codellama:7b-instruct` | Code generation |
-| `deepseek-r1:1.5b` | `ollama pull deepseek-r1:1.5b` | Reasoning tasks |
+| `deepseek-r1:1.5b`      | `ollama pull deepseek-r1:1.5b`      | Reasoning tasks |
 
 ## 📊 Expected Performance
 
@@ -310,29 +310,29 @@ Download pre-converted models from [RKLLM Model Zoo](https://console.box.lenovo.
 
 Official benchmark results on RK3588 (from rknn-llm documentation):
 
-| Model | Size | Dtype | TTFT(ms) | Tokens/s | Memory(MB) |
-|-------|------|-------|----------|----------|------------|
-| Qwen2 | 0.5B | w8a8 | 144 | 42.6 | 654 |
-| TinyLLAMA | 1.1B | w8a8 | 239 | 24.5 | 1085 |
-| Qwen2.5 | 1.5B | w8a8 | 412 | 16.3 | 1659 |
-| InternLM2 | 1.8B | w8a8 | 374 | 15.6 | 1766 |
-| Gemma2 | 2B | w8a8 | 680 | 9.8 | 2765 |
-| Phi3 | 3.8B | w8a8 | 1022 | 7.5 | 3748 |
-| MiniCPM3 | 4B | w8a8 | 1386 | 6.0 | 4340 |
-| ChatGLM3 | 6B | w8a8 | 1395 | 4.9 | 5976 |
+| Model     | Size | Dtype | TTFT(ms) | Tokens/s | Memory(MB) |
+| --------- | ---- | ----- | -------- | -------- | ---------- |
+| Qwen2     | 0.5B | w8a8  | 144      | 42.6     | 654        |
+| TinyLLAMA | 1.1B | w8a8  | 239      | 24.5     | 1085       |
+| Qwen2.5   | 1.5B | w8a8  | 412      | 16.3     | 1659       |
+| InternLM2 | 1.8B | w8a8  | 374      | 15.6     | 1766       |
+| Gemma2    | 2B   | w8a8  | 680      | 9.8      | 2765       |
+| Phi3      | 3.8B | w8a8  | 1022     | 7.5      | 3748       |
+| MiniCPM3  | 4B   | w8a8  | 1386     | 6.0      | 4340       |
+| ChatGLM3  | 6B   | w8a8  | 1395     | 4.9      | 5976       |
 
 *TTFT = Time To First Token. Performance tested with Seqlen=128, New_tokens=64.*
 
 ### Ollama (CPU) Performance
 
-| Model | RAM Usage | Tokens/sec | Quality |
-|-------|-----------|------------|---------|
-| Qwen 2.5 3B | 2-3GB | 15-25 | Good |
-| Phi-3 Mini | 2-3GB | 15-25 | Good |
-| Llama 3.2 3B | 2-3GB | 12-20 | Good |
-| Gemma 2 2B | 2GB | 20-30 | Good |
-| Mistral 7B Q4 | 5-6GB | 8-15 | Very Good |
-| Llama 3.1 8B Q4 | 6-7GB | 6-12 | Very Good |
+| Model           | RAM Usage | Tokens/sec | Quality   |
+| --------------- | --------- | ---------- | --------- |
+| Qwen 2.5 3B     | 2-3GB     | 15-25      | Good      |
+| Phi-3 Mini      | 2-3GB     | 15-25      | Good      |
+| Llama 3.2 3B    | 2-3GB     | 12-20      | Good      |
+| Gemma 2 2B      | 2GB       | 20-30      | Good      |
+| Mistral 7B Q4   | 5-6GB     | 8-15       | Very Good |
+| Llama 3.1 8B Q4 | 6-7GB     | 6-12       | Very Good |
 
 *Performance varies based on context length and system load.*
 
@@ -355,6 +355,44 @@ git clone https://github.com/airockchip/rknn-llm.git
 # Visit: https://console.box.lenovo.com/l/l0tXb8 (fetch code: rkllm)
 ```
 
+## 🐳 Docker Deployment
+
+### Quick Start with Docker Compose
+
+```bash
+# Start with CPU only (Ollama)
+docker compose --profile cpu up
+
+# Start with NPU acceleration (RKLLama)
+docker compose --profile npu up
+
+# Build and start the RAG API only
+docker compose up rag-api
+```
+
+### Profiles
+
+| Profile | Description                       | Command                           |
+| ------- | --------------------------------- | --------------------------------- |
+| `cpu`   | Ollama (CPU inference) + RAG API  | `docker compose --profile cpu up` |
+| `npu`   | RKLLama (NPU inference) + RAG API | `docker compose --profile npu up` |
+
+### Environment Variables
+
+Configure via `.env` file:
+```env
+# For CPU (Ollama)
+LLM_BACKEND=ollama
+OLLAMA_BASE_URL=http://ollama:11434
+
+# For NPU (RKLLama)
+LLM_BACKEND=rkllm
+RKLLM_BASE_URL=http://rkllama:8080
+RKLLM_MODEL=qwen2.5:3b
+```
+
+**Note**: RKLLama requires privileged mode for NPU access. Models must be in `.rkllm` format.
+
 ## 🔄 Alternative: Ollama (CPU-Based)
 
 If you prefer a simpler setup or need models not available in RKLLM format:
@@ -370,9 +408,16 @@ See [Ollama Documentation](https://ollama.com/) for details.
 All settings can be configured via environment variables or the `.env` file:
 
 ```bash
-# LLM Settings
+# LLM Backend Selection
+LLM_BACKEND=ollama  # or 'rkllm' for NPU
+
+# Ollama Settings (when LLM_BACKEND=ollama)
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=qwen2.5:3b
+
+# RKLLama Settings (when LLM_BACKEND=rkllm)
+RKLLM_BASE_URL=http://localhost:8080
+RKLLM_MODEL=qwen2.5:3b
 
 # Embedding Settings
 EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2

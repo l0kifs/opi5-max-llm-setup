@@ -1,4 +1,5 @@
 from enum import Enum
+from functools import lru_cache
 from pathlib import Path
 
 from pydantic import Field
@@ -43,8 +44,8 @@ class Settings(BaseSettings):
 
     # LLM Backend settings
     llm_backend: LLMBackend = Field(
-        default=LLMBackend.OLLAMA,
-        description="LLM backend to use: 'ollama' (CPU) or 'rkllm' (NPU, recommended)",
+        default=LLMBackend.RKLLM,
+        description="LLM backend to use: 'rkllm' (NPU, default) or 'ollama' (CPU)",
     )
 
     # Ollama settings
@@ -61,14 +62,14 @@ class Settings(BaseSettings):
         default=1, description="Maximum number of loaded Ollama models"
     )
 
-    # RKLLM settings (NPU acceleration)
-    rkllm_model_path: Path = Field(
-        default=Path("./models/model.rkllm"),
-        description="Path to the RKLLM model file (.rkllm)",
+    # RKLLM/RKLLama settings (NPU acceleration via RKLLama server)
+    rkllm_base_url: str = Field(
+        default="http://localhost:8080",
+        description="RKLLama server URL (Ollama-compatible API for RK3588 NPU)",
     )
-    rkllm_lib_path: Path = Field(
-        default=Path("./lib"),
-        description="Path to RKLLM runtime libraries",
+    rkllm_model: str = Field(
+        default="qwen2.5:3b",
+        description="Default RKLLama model for NPU inference",
     )
 
     # Embedding settings
@@ -106,6 +107,7 @@ class Settings(BaseSettings):
     )
 
 
+@lru_cache
 def get_settings() -> Settings:
-    """Retrieve application settings"""
+    """Retrieve application settings (cached for performance)."""
     return Settings()

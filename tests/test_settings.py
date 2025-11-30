@@ -27,10 +27,10 @@ class TestSettings:
         assert settings.llm_backend.value == "ollama"
 
     def test_default_rkllm_settings(self) -> None:
-        """Test default RKLLM settings."""
+        """Test default RKLLM/RKLLama settings."""
         settings = get_settings()
-        assert settings.rkllm_model_path == Path("./models/model.rkllm")
-        assert settings.rkllm_lib_path == Path("./lib")
+        assert settings.rkllm_base_url == "http://localhost:8080"
+        assert settings.rkllm_model == "qwen2.5:3b"
 
     def test_default_embedding_settings(self) -> None:
         """Test default embedding settings."""

@@ -8,10 +8,10 @@ The RK3588 SoC includes a dedicated NPU capable of 6 TOPS (Trillion Operations P
 
 ### Why Use RKLLM (NPU)?
 
-| Approach | Performance | Setup Complexity | Model Availability |
-|----------|-------------|------------------|-------------------|
-| **NPU (RKLLM)** ⭐ | **2-3x faster** | Moderate | Pre-converted models available |
-| **Ollama (CPU)** | Baseline | Easy | Many models |
+| Approach          | Performance     | Setup Complexity | Model Availability             |
+| ----------------- | --------------- | ---------------- | ------------------------------ |
+| **NPU (RKLLM)** ⭐ | **2-3x faster** | Moderate         | Pre-converted models available |
+| **Ollama (CPU)**  | Baseline        | Easy             | Many models                    |
 
 **Recommendation**: Use RKLLM (NPU) for production deployments and best performance. Use Ollama as an alternative if you need models not yet available in RKLLM format.
 
@@ -55,18 +55,18 @@ The model zoo includes:
 
 ### Supported Models
 
-| Model | Model Size | Notes |
-|-------|------------|-------|
-| Qwen2/Qwen2.5/Qwen3 | 0.5B - 7B+ | General purpose, multilingual |
-| TinyLlama | 1.1B | Very fast, basic tasks |
-| Phi2/Phi3 | 2B - 3.8B | Good for coding |
-| Gemma2/Gemma3/Gemma3n | 2B | Good quality |
-| ChatGLM3 | 6B | Chinese + English |
-| InternLM2 | 1.8B | Research models |
-| MiniCPM3/MiniCPM4 | 0.5B - 4B | Efficient models |
-| DeepSeek-R1-Distill | Various | Reasoning tasks |
-| Qwen2-VL/Qwen3-VL | 2B - 3B | Vision-language models |
-| MiniCPM-V-2_6 | - | Vision-language model |
+| Model                 | Model Size | Notes                         |
+| --------------------- | ---------- | ----------------------------- |
+| Qwen2/Qwen2.5/Qwen3   | 0.5B - 7B+ | General purpose, multilingual |
+| TinyLlama             | 1.1B       | Very fast, basic tasks        |
+| Phi2/Phi3             | 2B - 3.8B  | Good for coding               |
+| Gemma2/Gemma3/Gemma3n | 2B         | Good quality                  |
+| ChatGLM3              | 6B         | Chinese + English             |
+| InternLM2             | 1.8B       | Research models               |
+| MiniCPM3/MiniCPM4     | 0.5B - 4B  | Efficient models              |
+| DeepSeek-R1-Distill   | Various    | Reasoning tasks               |
+| Qwen2-VL/Qwen3-VL     | 2B - 3B    | Vision-language models        |
+| MiniCPM-V-2_6         | -          | Vision-language model         |
 
 ### Running Models
 
@@ -207,16 +207,16 @@ uname -r
 
 Official benchmark results on RK3588 (from rknn-llm documentation):
 
-| Model | Model Size | Dtype | TTFT(ms) | Tokens/s | Memory(MB) |
-|-------|------------|-------|----------|----------|------------|
-| Qwen2 | 0.5B | w8a8 | 144 | 42.6 | 654 |
-| TinyLLAMA | 1.1B | w8a8 | 239 | 24.5 | 1085 |
-| Qwen2.5 | 1.5B | w8a8 | 412 | 16.3 | 1659 |
-| InternLM2 | 1.8B | w8a8 | 374 | 15.6 | 1766 |
-| Gemma2 | 2B | w8a8 | 680 | 9.8 | 2765 |
-| Phi3 | 3.8B | w8a8 | 1022 | 7.5 | 3748 |
-| MiniCPM3 | 4B | w8a8 | 1386 | 6.0 | 4340 |
-| ChatGLM3 | 6B | w8a8 | 1395 | 4.9 | 5976 |
+| Model     | Model Size | Dtype | TTFT(ms) | Tokens/s | Memory(MB) |
+| --------- | ---------- | ----- | -------- | -------- | ---------- |
+| Qwen2     | 0.5B       | w8a8  | 144      | 42.6     | 654        |
+| TinyLLAMA | 1.1B       | w8a8  | 239      | 24.5     | 1085       |
+| Qwen2.5   | 1.5B       | w8a8  | 412      | 16.3     | 1659       |
+| InternLM2 | 1.8B       | w8a8  | 374      | 15.6     | 1766       |
+| Gemma2    | 2B         | w8a8  | 680      | 9.8      | 2765       |
+| Phi3      | 3.8B       | w8a8  | 1022     | 7.5      | 3748       |
+| MiniCPM3  | 4B         | w8a8  | 1386     | 6.0      | 4340       |
+| ChatGLM3  | 6B         | w8a8  | 1395     | 4.9      | 5976       |
 
 *TTFT = Time To First Token. Performance tested with Seqlen=128, New_tokens=64.*
 
@@ -228,10 +228,55 @@ Official benchmark results on RK3588 (from rknn-llm documentation):
 - [RKLLM SDK Download](https://console.zbox.filez.com/l/RJJDmB) (Fetch code: rkllm)
 - [RKLLM Model Zoo](https://console.box.lenovo.com/l/l0tXb8) (Fetch code: rkllm)
 - [RKLLM-Gradio WebUI](https://github.com/c0zaut/RKLLM-Gradio)
+- [RKLLama (Ollama-compatible server)](https://github.com/NotPunchnox/rkllama)
 
 ## Integration with This Project
 
-RKLLM is the recommended backend for this project. To integrate RKLLM with the RAG pipeline:
+### Option 1: Docker with RKLLama (Recommended)
+
+[RKLLama](https://github.com/NotPunchnox/rkllama) provides an Ollama-compatible API for running LLMs on the RK3588 NPU. This is the easiest way to integrate NPU acceleration with this project.
+
+**Quick Start with Docker Compose:**
+
+```bash
+# Start with NPU acceleration (RKLLama)
+docker compose --profile npu up
+
+# Or start with CPU only (Ollama)
+docker compose --profile cpu up
+```
+
+**Manual Docker Setup:**
+
+```bash
+# Run RKLLama container with NPU access
+docker run -d \
+  --name rkllama \
+  --privileged \
+  -p 8080:8080 \
+  -v ./models:/opt/rkllama/models \
+  ghcr.io/notpunchnox/rkllama:main
+```
+
+**Configuration:**
+
+Set these environment variables in your `.env` file:
+
+```env
+LLM_BACKEND=rkllm
+RKLLM_BASE_URL=http://localhost:8080
+RKLLM_MODEL=qwen2.5:3b
+```
+
+**Notes:**
+- RKLLama default port is **8080** (not 11434 like Ollama)
+- Requires **privileged mode** for NPU access
+- Models must be in `.rkllm` format (download from RKLLM Model Zoo)
+- RKLLama implements the Ollama API, so you can use Ollama-compatible clients
+
+### Option 2: Native RKLLM Setup
+
+For native RKLLM setup without Docker:
 
 1. Run the setup script with RKLLM: `bash scripts/setup.sh --rkllm`
 2. Download pre-converted models from the RKLLM Model Zoo
