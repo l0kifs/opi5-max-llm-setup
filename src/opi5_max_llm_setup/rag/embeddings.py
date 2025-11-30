@@ -9,6 +9,14 @@ from loguru import logger
 from opi5_max_llm_setup.config.settings import get_settings
 
 
+class EmbeddingsNotInitializedError(RuntimeError):
+    """Raised when embeddings are accessed before initialization."""
+
+    def __init__(self) -> None:
+        """Initialize the error with a default message."""
+        super().__init__("Embeddings not initialized")
+
+
 class EmbeddingManager:
     """Manage embedding model for document vectorization."""
 
@@ -57,9 +65,12 @@ class EmbeddingManager:
 
         Returns:
             Embeddings model instance
+
+        Raises:
+            EmbeddingsNotInitializedError: If embeddings are not initialized
         """
         if self._embeddings is None:
-            raise RuntimeError("Embeddings not initialized")
+            raise EmbeddingsNotInitializedError
         return self._embeddings
 
     def embed_query(self, text: str) -> list[float]:

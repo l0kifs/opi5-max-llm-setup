@@ -1,5 +1,6 @@
 """Ollama client for LLM inference."""
 
+from http import HTTPStatus
 from typing import Any
 
 import httpx
@@ -8,6 +9,14 @@ from langchain_ollama import OllamaLLM
 from loguru import logger
 
 from opi5_max_llm_setup.config.settings import get_settings
+
+
+class LLMNotInitializedError(RuntimeError):
+    """Raised when the LLM is accessed before initialization."""
+
+    def __init__(self) -> None:
+        """Initialize the error with a default message."""
+        super().__init__("LLM not initialized")
 
 
 class OllamaClient:
@@ -55,10 +64,10 @@ class OllamaClient:
             LLM instance
 
         Raises:
-            RuntimeError: If LLM is not initialized
+            LLMNotInitializedError: If LLM is not initialized
         """
         if self._llm is None:
-            raise RuntimeError("LLM not initialized")
+            raise LLMNotInitializedError
         return self._llm
 
     def generate(self, prompt: str) -> str:
@@ -85,7 +94,7 @@ class OllamaClient:
         try:
             with httpx.Client(timeout=5.0) as client:
                 response = client.get(f"{self.base_url}/api/tags")
-                return response.status_code == 200
+                return response.status_code == HTTPStatus.OK
         except httpx.RequestError:
             return False
 
@@ -99,7 +108,7 @@ class OllamaClient:
         try:
             with httpx.Client(timeout=10.0) as client:
                 response = client.get(f"{self.base_url}/api/tags")
-                if response.status_code == 200:
+                if response.status_code == HTTPStatus.OK:
                     data = response.json()
                     return list(data.get("models", []))
         except httpx.RequestError as e:
@@ -122,7 +131,7 @@ class OllamaClient:
                     f"{self.base_url}/api/pull",
                     json={"name": model_name},
                 )
-                return response.status_code == 200
+                return response.status_code == HTTPStatus.OK
         except httpx.RequestError as e:
             logger.error(f"Error pulling model: {e}")
             return False
@@ -144,7 +153,7 @@ class OllamaClient:
                     f"{self.base_url}/api/show",
                     json={"name": model_name},
                 )
-                if response.status_code == 200:
+                if response.status_code == HTTPStatus.OK:
                     return dict(response.json())
         except httpx.RequestError as e:
             logger.error(f"Error getting model info: {e}")

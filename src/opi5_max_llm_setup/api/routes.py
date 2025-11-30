@@ -4,6 +4,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, Any
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from loguru import logger
 
@@ -22,7 +23,7 @@ from opi5_max_llm_setup.api.models import (
     StatsResponse,
 )
 from opi5_max_llm_setup.config.settings import get_settings
-from opi5_max_llm_setup.llm.ollama_client import OllamaClient
+from opi5_max_llm_setup.llm.ollama_client import LLMNotInitializedError, OllamaClient
 from opi5_max_llm_setup.rag.rag_pipeline import RAGPipeline
 
 router = APIRouter()
@@ -62,8 +63,7 @@ def query_documents(
     request: QueryRequest,
     pipeline: RAGPipelineDep,
 ) -> QueryResponse:
-    """
-    Query the RAG pipeline with a question.
+    """Query the RAG pipeline with a question.
 
     The pipeline will search for relevant documents and generate an answer.
     """
@@ -82,8 +82,7 @@ def chat_with_llm(
     request: ChatRequest,
     ollama: OllamaClientDep,
 ) -> ChatResponse:
-    """
-    Chat directly with the LLM without RAG context.
+    """Chat directly with the LLM without RAG context.
 
     Use this for general questions that don't require document context.
     """
@@ -96,7 +95,7 @@ def chat_with_llm(
     try:
         response = ollama.generate(request.prompt)
         return ChatResponse(success=True, response=response)
-    except Exception as e:
+    except (LLMNotInitializedError, httpx.RequestError, RuntimeError) as e:
         logger.error(f"Chat error: {e}")
         return ChatResponse(success=False, error=str(e))
 
@@ -110,8 +109,7 @@ async def upload_document(
     file: UploadFile,
     pipeline: RAGPipelineDep,
 ) -> DocumentUploadResponse:
-    """
-    Upload a document to the RAG pipeline.
+    """Upload a document to the RAG pipeline.
 
     Supported formats: PDF, TXT, DOCX
     """
@@ -160,8 +158,7 @@ def search_documents(
     request: SearchRequest,
     pipeline: RAGPipelineDep,
 ) -> SearchResponse:
-    """
-    Search for similar documents without generating an answer.
+    """Search for similar documents without generating an answer.
 
     Returns the most relevant document chunks.
     """
@@ -178,7 +175,7 @@ def search_documents(
         ]
 
         return SearchResponse(success=True, results=search_results)
-    except Exception as e:
+    except (RuntimeError, KeyError, AttributeError) as e:
         logger.error(f"Search error: {e}")
         return SearchResponse(success=False, error=str(e))
 
@@ -222,7 +219,7 @@ def list_models(ollama: OllamaClientDep) -> ModelsResponse:
             for m in models_data
         ]
         return ModelsResponse(success=True, models=models)
-    except Exception as e:
+    except (httpx.RequestError, KeyError, RuntimeError) as e:
         logger.error(f"Error listing models: {e}")
         return ModelsResponse(success=False, error=str(e))
 
