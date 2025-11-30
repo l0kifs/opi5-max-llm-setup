@@ -4,38 +4,58 @@ Complete setup of local Large Language Models (LLMs) with Retrieval-Augmented Ge
 
 ## 🚀 Quick Start
 
-### Automated Setup (Recommended)
+### NPU-Accelerated Setup (Recommended)
+
+For best performance on Orange Pi 5 Max, use the NPU-accelerated RKLLM backend which provides 2-3x faster inference:
 
 ```bash
 # Clone the repository
 git clone https://github.com/l0kifs/opi5-max-llm-setup.git
 cd opi5-max-llm-setup
 
-# Run the setup script
-bash scripts/setup.sh
+# Run the setup script with RKLLM (NPU) support
+bash scripts/setup.sh --rkllm
 ```
 
-### Manual Setup
+See the [NPU Setup Guide](docs/npu-setup.md) for detailed instructions on downloading pre-converted models from the RKLLM Model Zoo.
+
+### Alternative: Ollama Setup (Easier, but Slower)
+
+If you prefer a simpler setup without NPU acceleration:
 
 ```bash
-# 1. Install Ollama
-curl -fsSL https://ollama.com/install.sh | sh
-ollama pull qwen2.5:3b
-
-# 2. Install UV package manager
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# 3. Clone and setup project
+# Clone the repository
 git clone https://github.com/l0kifs/opi5-max-llm-setup.git
 cd opi5-max-llm-setup
 
-# 4. Install dependencies
+# Run the setup script with Ollama
+bash scripts/setup.sh --ollama
+```
+
+### Manual Setup (NPU-Accelerated)
+
+```bash
+# 1. Clone the official rknn-llm repository
+git clone https://github.com/airockchip/rknn-llm.git
+
+# 2. Download pre-converted models from RKLLM Model Zoo
+# Visit: https://console.box.lenovo.com/l/l0tXb8 (fetch code: rkllm)
+
+# 3. Install UV package manager
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# 4. Clone and setup project
+git clone https://github.com/l0kifs/opi5-max-llm-setup.git
+cd opi5-max-llm-setup
+
+# 5. Install dependencies
 uv sync
 
-# 5. Copy environment configuration
+# 6. Copy environment configuration
 cp .env.example .env
+# Edit .env to use RKLLM backend
 
-# 6. Start the API server
+# 7. Start the API server
 uv run opi5-server
 ```
 
@@ -47,13 +67,14 @@ The API will be available at `http://localhost:8000` with documentation at `http
 - Optimized for Orange Pi 5 Max (16GB RAM)
 - Rockchip RK3588 ARM64 architecture support
 - Memory-efficient model recommendations
-- CPU-optimized inference with Ollama
-- NPU acceleration support via RKLLM (optional)
+- **NPU acceleration via RKLLM (recommended, 2-3x faster)**
+- CPU-optimized inference with Ollama (alternative)
 
 ### LLM Support
-- Ollama integration for easy model management
+- **RKLLM integration for NPU-accelerated inference (recommended)**
+- Ollama integration for easy model management (alternative)
 - Multiple model options (Qwen, Phi-3, Llama, Mistral, etc.)
-- Quantized models (Q4, Q5, Q8) for memory efficiency
+- Quantized models (w8a8) for memory efficiency
 - Hot-swappable models
 
 ### RAG Capabilities
@@ -95,6 +116,39 @@ sudo apt install -y build-essential git curl python3 python3-pip python3-venv
 ```
 
 ### Installation Steps
+
+#### Option A: RKLLM Setup (Recommended for Best Performance)
+
+1. **Clone RKLLM repository**:
+```bash
+git clone https://github.com/airockchip/rknn-llm.git
+```
+
+2. **Download pre-converted models**:
+   - Visit: https://console.box.lenovo.com/l/l0tXb8
+   - Fetch code: `rkllm`
+   - Download models and demos for your use case
+
+3. **Install UV** (modern Python package manager):
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+source ~/.bashrc  # or restart terminal
+```
+
+4. **Clone and setup project**:
+```bash
+git clone https://github.com/l0kifs/opi5-max-llm-setup.git
+cd opi5-max-llm-setup
+uv sync
+```
+
+5. **Configure environment**:
+```bash
+cp .env.example .env
+# Edit .env to configure RKLLM backend
+```
+
+#### Option B: Ollama Setup (Easier, but Slower)
 
 1. **Install Ollama**:
 ```bash
@@ -212,7 +266,24 @@ print(response.json()["answer"])
 
 ## 📚 Recommended Models
 
-### Small Models (2-4GB RAM, Fast)
+### RKLLM Models (NPU-Accelerated, Recommended)
+
+Download pre-converted models from [RKLLM Model Zoo](https://console.box.lenovo.com/l/l0tXb8) (fetch code: `rkllm`).
+
+| Model | Size | Dtype | Best For | Tokens/sec |
+|-------|------|-------|----------|------------|
+| Qwen2 0.5B | 0.5B | w8a8 | Very fast, basic tasks | 42.6 |
+| TinyLLAMA 1.1B | 1.1B | w8a8 | Fast responses | 24.5 |
+| Qwen2.5 1.5B | 1.5B | w8a8 | General tasks | 16.3 |
+| InternLM2 1.8B | 1.8B | w8a8 | Research models | 15.6 |
+| Gemma2 2B | 2B | w8a8 | Good quality | 9.8 |
+| Phi3 3.8B | 3.8B | w8a8 | Coding, reasoning | 7.5 |
+| MiniCPM3 4B | 4B | w8a8 | Efficient models | 6.0 |
+| ChatGLM3 6B | 6B | w8a8 | Chinese + English | 4.9 |
+
+### Ollama Models (Alternative, CPU-Based)
+
+#### Small Models (2-4GB RAM, Fast)
 | Model | Command | Best For |
 |-------|---------|----------|
 | `qwen2.5:3b` | `ollama pull qwen2.5:3b` | General tasks, fast |
@@ -220,20 +291,39 @@ print(response.json()["answer"])
 | `gemma2:2b` | `ollama pull gemma2:2b` | Very fast responses |
 | `llama3.2:3b` | `ollama pull llama3.2:3b` | Good all-rounder |
 
-### Medium Models (5-8GB RAM, Better Quality)
+#### Medium Models (5-8GB RAM, Better Quality)
 | Model | Command | Best For |
 |-------|---------|----------|
 | `mistral:7b-instruct-q4_0` | `ollama pull mistral:7b-instruct-q4_0` | High-quality responses |
 | `llama3.1:8b-instruct-q4_0` | `ollama pull llama3.1:8b-instruct-q4_0` | Latest capabilities |
 | `qwen2.5:7b-instruct-q4_0` | `ollama pull qwen2.5:7b-instruct-q4_0` | Multilingual |
 
-### Specialized Models
+#### Specialized Models
 | Model | Command | Best For |
 |-------|---------|----------|
 | `codellama:7b-instruct` | `ollama pull codellama:7b-instruct` | Code generation |
 | `deepseek-r1:1.5b` | `ollama pull deepseek-r1:1.5b` | Reasoning tasks |
 
 ## 📊 Expected Performance
+
+### RKLLM (NPU) Performance (Recommended)
+
+Official benchmark results on RK3588 (from rknn-llm documentation):
+
+| Model | Size | Dtype | TTFT(ms) | Tokens/s | Memory(MB) |
+|-------|------|-------|----------|----------|------------|
+| Qwen2 | 0.5B | w8a8 | 144 | 42.6 | 654 |
+| TinyLLAMA | 1.1B | w8a8 | 239 | 24.5 | 1085 |
+| Qwen2.5 | 1.5B | w8a8 | 412 | 16.3 | 1659 |
+| InternLM2 | 1.8B | w8a8 | 374 | 15.6 | 1766 |
+| Gemma2 | 2B | w8a8 | 680 | 9.8 | 2765 |
+| Phi3 | 3.8B | w8a8 | 1022 | 7.5 | 3748 |
+| MiniCPM3 | 4B | w8a8 | 1386 | 6.0 | 4340 |
+| ChatGLM3 | 6B | w8a8 | 1395 | 4.9 | 5976 |
+
+*TTFT = Time To First Token. Performance tested with Seqlen=128, New_tokens=64.*
+
+### Ollama (CPU) Performance
 
 | Model | RAM Usage | Tokens/sec | Quality |
 |-------|-----------|------------|---------|
@@ -246,15 +336,34 @@ print(response.json()["answer"])
 
 *Performance varies based on context length and system load.*
 
-## ⚡ NPU Acceleration (Optional)
+## ⚡ NPU Acceleration (Recommended)
 
-For faster inference using the RK3588's NPU, see [NPU Setup Guide](docs/npu-setup.md).
+For best performance on Orange Pi 5 Max, use the RK3588's NPU with RKLLM. See the [NPU Setup Guide](docs/npu-setup.md) for complete instructions.
 
-**Summary:**
-- Use official RKLLM SDK from Rockchip for NPU setup
-- Pre-converted models available from RKLLM Model Zoo
-- 2-3x faster inference for supported models
-- Requires Ubuntu with Rockchip kernel
+**Why use RKLLM (NPU)?**
+- **2-3x faster inference** compared to CPU-only Ollama
+- **Lower memory usage** with w8a8 quantization
+- **Better power efficiency** for edge deployment
+- **Official support** from Rockchip via airockchip/rknn-llm
+
+**Quick Start:**
+```bash
+# Clone RKLLM repository
+git clone https://github.com/airockchip/rknn-llm.git
+
+# Download models from RKLLM Model Zoo
+# Visit: https://console.box.lenovo.com/l/l0tXb8 (fetch code: rkllm)
+```
+
+## 🔄 Alternative: Ollama (CPU-Based)
+
+If you prefer a simpler setup or need models not available in RKLLM format:
+
+- Easier initial setup with more available models
+- Good for testing and development
+- Works on any system without NPU drivers
+
+See [Ollama Documentation](https://ollama.com/) for details.
 
 ## 🛠️ Configuration
 
