@@ -251,8 +251,8 @@ print(response.json()["answer"])
 For faster inference using the RK3588's NPU, see [NPU Setup Guide](docs/npu-setup.md).
 
 **Summary:**
-- Use ezrknn-llm for easy NPU setup
-- Pre-converted models available on Hugging Face
+- Use official RKLLM SDK from Rockchip for NPU setup
+- Pre-converted models available from RKLLM Model Zoo
 - 2-3x faster inference for supported models
 - Requires Ubuntu with Rockchip kernel
 
@@ -345,7 +345,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [LangChain Documentation](https://python.langchain.com/)
 - [ChromaDB Documentation](https://docs.trychroma.com/)
 - [Joshua Riek's Ubuntu Rockchip](https://github.com/Joshua-Riek/ubuntu-rockchip)
-- [ezrknn-llm (NPU)](https://github.com/Pelochus/ezrknn-llm)
+- [RKLLM (NPU)](https://github.com/airockchip/rknn-llm)
 
 ## 🤝 Contributing
 
