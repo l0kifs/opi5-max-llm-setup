@@ -118,7 +118,7 @@ class VectorStoreManager:
             # Get all document IDs to count them
             result = self.vector_store.get()
             count = len(result.get("ids", [])) if result else 0
-        except Exception:
+        except (KeyError, AttributeError, RuntimeError):
             count = 0
 
         return {

@@ -1,21 +1,27 @@
 import sys
+from dataclasses import dataclass
 
 from loguru import logger
 
 from opi5_max_llm_setup.config.settings import get_settings
 
-settings = get_settings()
 
-_logging_configured = False
+@dataclass
+class LoggingState:
+    """State for tracking logging configuration."""
+
+    configured: bool = False
+
+
+_logging_state = LoggingState()
 
 
 def setup_logging() -> None:
-    """
-    Configure logging for the application.
-    """
-    global _logging_configured
-    if _logging_configured:
+    """Configure logging for the application."""
+    if _logging_state.configured:
         return
+
+    settings = get_settings()
 
     # Remove default handler to avoid duplicate logs
     logger.remove()
@@ -41,4 +47,4 @@ def setup_logging() -> None:
         log_level=settings.logging_level,
     )
 
-    _logging_configured = True
+    _logging_state.configured = True

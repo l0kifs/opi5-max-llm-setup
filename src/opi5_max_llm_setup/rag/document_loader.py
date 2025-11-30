@@ -15,6 +15,15 @@ from loguru import logger
 from opi5_max_llm_setup.config.settings import get_settings
 
 
+class UnsupportedFileTypeError(ValueError):
+    """Raised when a file type is not supported for document loading."""
+
+    def __init__(self, suffix: str) -> None:
+        """Initialize the error with the unsupported file suffix."""
+        super().__init__(f"Unsupported file type: {suffix}")
+        self.suffix = suffix
+
+
 class DocumentLoader:
     """Load and process various document formats for RAG."""
 
@@ -40,7 +49,7 @@ class DocumentLoader:
             List of Document objects
 
         Raises:
-            ValueError: If file type is not supported
+            UnsupportedFileTypeError: If file type is not supported
         """
         file_path = Path(file_path)
         suffix = file_path.suffix.lower()
@@ -53,7 +62,7 @@ class DocumentLoader:
         elif suffix in [".docx", ".doc"]:
             loader = UnstructuredWordDocumentLoader(str(file_path))
         else:
-            raise ValueError(f"Unsupported file type: {suffix}")
+            raise UnsupportedFileTypeError(suffix)
 
         logger.info(f"Loading document: {file_path}")
         documents: list[Document] = loader.load()
@@ -107,7 +116,7 @@ class DocumentLoader:
                 try:
                     chunks = self.load_and_split(file_path)
                     all_documents.extend(chunks)
-                except (ValueError, OSError) as e:
+                except (UnsupportedFileTypeError, OSError) as e:
                     logger.error(f"Error loading {file_path}: {e}")
 
         logger.info(f"Loaded {len(all_documents)} total chunks from {directory_path}")

@@ -3,6 +3,7 @@
 from pathlib import Path
 from typing import Any
 
+import httpx
 from langchain_core.documents import Document
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
@@ -10,8 +11,11 @@ from langchain_core.runnables import RunnablePassthrough
 from loguru import logger
 
 from opi5_max_llm_setup.config.settings import get_settings
-from opi5_max_llm_setup.llm.ollama_client import OllamaClient
-from opi5_max_llm_setup.rag.document_loader import DocumentLoader
+from opi5_max_llm_setup.llm.ollama_client import LLMNotInitializedError, OllamaClient
+from opi5_max_llm_setup.rag.document_loader import (
+    DocumentLoader,
+    UnsupportedFileTypeError,
+)
 from opi5_max_llm_setup.rag.vector_store import VectorStoreManager
 
 # RAG prompt template
@@ -101,7 +105,7 @@ class RAGPipeline:
                 "chunks_added": len(chunks),
                 "document_ids": ids,
             }
-        except (ValueError, OSError, RuntimeError) as e:
+        except (UnsupportedFileTypeError, OSError, RuntimeError) as e:
             logger.error(f"Error adding document: {e}")
             return {
                 "success": False,
@@ -148,7 +152,7 @@ class RAGPipeline:
                 "chunks_added": len(chunks),
                 "document_ids": ids,
             }
-        except (ValueError, OSError) as e:
+        except (UnsupportedFileTypeError, OSError) as e:
             logger.error(f"Error adding documents from directory: {e}")
             return {
                 "success": False,
@@ -181,18 +185,18 @@ class RAGPipeline:
                 }
                 for doc in source_docs_raw
             ]
-
-            return {
-                "success": True,
-                "answer": answer,
-                "sources": source_docs,
-            }
-        except Exception as e:
+        except (LLMNotInitializedError, httpx.RequestError, RuntimeError) as e:
             logger.error(f"Error during RAG query: {e}")
             return {
                 "success": False,
                 "error": str(e),
             }
+
+        return {
+            "success": True,
+            "answer": answer,
+            "sources": source_docs,
+        }
 
     def search_similar(self, query: str, k: int | None = None) -> list[Document]:
         """
