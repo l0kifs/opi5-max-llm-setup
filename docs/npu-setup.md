@@ -1,21 +1,21 @@
-# NPU Setup Guide for Orange Pi 5 Max
+# NPU Setup Guide for Orange Pi 5 Max (Recommended)
 
-This guide covers setting up NPU-accelerated LLM inference on the Orange Pi 5 Max using the RK3588's 6 TOPS Neural Processing Unit.
+This guide covers setting up NPU-accelerated LLM inference on the Orange Pi 5 Max using the RK3588's 6 TOPS Neural Processing Unit. **This is the recommended approach for best performance.**
 
 ## Overview
 
-The RK3588 SoC includes a dedicated NPU capable of 6 TOPS (Trillion Operations Per Second) of AI inference. For LLMs, this can provide significant performance improvements over CPU-only inference.
+The RK3588 SoC includes a dedicated NPU capable of 6 TOPS (Trillion Operations Per Second) of AI inference. For LLMs, this provides **2-3x performance improvements** over CPU-only inference with Ollama.
 
-### NPU vs Ollama
+### Why Use RKLLM (NPU)?
 
-| Approach | Pros | Cons |
-|----------|------|------|
-| **Ollama (CPU)** | Easy setup, many models | Slower inference |
-| **NPU (RKLLM)** | Faster inference | Requires model conversion, fewer models |
+| Approach | Performance | Setup Complexity | Model Availability |
+|----------|-------------|------------------|-------------------|
+| **NPU (RKLLM)** ⭐ | **2-3x faster** | Moderate | Pre-converted models available |
+| **Ollama (CPU)** | Baseline | Easy | Many models |
 
-**Recommendation**: Start with Ollama for ease of use. Consider NPU if you need faster inference for specific models.
+**Recommendation**: Use RKLLM (NPU) for production deployments and best performance. Use Ollama as an alternative if you need models not yet available in RKLLM format.
 
-## Option A: Official RKLLM SDK (Recommended for NPU)
+## Quick Start with RKLLM (Recommended)
 
 The official RKLLM SDK from Rockchip provides comprehensive NPU-accelerated LLM support for RK3588 devices.
 
@@ -231,10 +231,14 @@ Official benchmark results on RK3588 (from rknn-llm documentation):
 
 ## Integration with This Project
 
-The RAG pipeline in this project uses Ollama by default, which works well for most use cases. If you want to use NPU-accelerated inference:
+RKLLM is the recommended backend for this project. To integrate RKLLM with the RAG pipeline:
 
-1. Run your RKLLM model server separately
-2. Configure this project to use an OpenAI-compatible API endpoint
-3. Or modify the LLM client to use RKLLM Python bindings directly
+1. Run the setup script with RKLLM: `bash scripts/setup.sh --rkllm`
+2. Download pre-converted models from the RKLLM Model Zoo
+3. Configure the RKLLM model server
+4. The project will use NPU-accelerated inference for optimal performance
 
-For most users, Ollama provides a good balance of ease-of-use and performance.
+**Alternative (Ollama)**: If you need models not available in RKLLM format, you can use Ollama as an alternative backend:
+```bash
+bash scripts/setup.sh --ollama
+```
