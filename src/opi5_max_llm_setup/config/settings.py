@@ -68,7 +68,7 @@ class Settings(BaseSettings):
         description="RKLLama server URL (Ollama-compatible API for RK3588 NPU)",
     )
     rkllm_model: str = Field(
-        default="qwen2.5:3b",
+        default="qwen2.5",
         description="Default RKLLama model for NPU inference",
     )
 
