@@ -35,12 +35,12 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ./models:/opt/rkllama/models
+      - ./models:/root/RKLLAMA/models
     restart: unless-stopped
     # Privileged mode required for NPU access
     privileged: true
     environment:
-      - RKLLAMA_MODEL_DIR=/opt/rkllama/models
+      - RKLLAMA_MODEL_DIR=/root/RKLLAMA/models
 
   # RAG API Server
   rag-api:
