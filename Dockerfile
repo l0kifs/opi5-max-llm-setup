@@ -17,7 +17,7 @@ ENV PATH="/root/.local/bin:$PATH"
 WORKDIR /app
 
 # Copy project files
-COPY pyproject.toml .
+COPY pyproject.toml README.md ./
 COPY src/ src/
 
 # Create virtual environment and install dependencies
@@ -38,7 +38,6 @@ COPY --from=builder /app/.venv /app/.venv
 
 # Copy application code
 COPY src/ src/
-COPY .env.example .env.example
 
 # Create data directories
 RUN mkdir -p data/chroma_db data/uploads
