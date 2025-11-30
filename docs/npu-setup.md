@@ -15,65 +15,88 @@ The RK3588 SoC includes a dedicated NPU capable of 6 TOPS (Trillion Operations P
 
 **Recommendation**: Start with Ollama for ease of use. Consider NPU if you need faster inference for specific models.
 
-## Option A: ezrknn-llm (Recommended for NPU)
+## Option A: Official RKLLM SDK (Recommended for NPU)
 
-ezrknn-llm simplifies NPU-accelerated LLM setup on RK3588 devices.
+The official RKLLM SDK from Rockchip provides comprehensive NPU-accelerated LLM support for RK3588 devices.
 
 ### Prerequisites
 
 - Ubuntu 24.04 with Joshua Riek's kernel (includes NPU drivers)
 - At least 8GB RAM (16GB recommended)
 - Internet connection for initial setup
+- Python 3.9, 3.10, 3.11, or 3.12
 
 ### Installation
 
 ```bash
-# Clone ezrknn-llm repository
-git clone https://github.com/Pelochus/ezrknn-llm.git
-cd ezrknn-llm
+# Clone the official rknn-llm repository
+git clone https://github.com/airockchip/rknn-llm.git
+cd rknn-llm
 
-# Run installation script
-sudo bash install.sh
+# The repository contains:
+# - rkllm-runtime/  : Runtime libraries for Linux/Android
+# - rkllm-toolkit/  : Model conversion toolkit (for x86_64 PC)
+# - examples/       : Demo applications
+# - scripts/        : Performance tuning scripts
 ```
 
 ### Download Pre-converted Models
 
-Pre-converted RKLLM models are available on Hugging Face:
+Pre-converted RKLLM models are available from the official RKLLM Model Zoo:
 
-```bash
-# Install git-lfs if not present
-sudo apt install git-lfs
+1. Open your web browser and navigate to: https://console.box.lenovo.com/l/l0tXb8
+2. Enter the fetch code: `rkllm`
+3. Download the desired model files (`.rkllm` format) and demo executables
+4. Transfer the files to your Orange Pi 5 Max
 
-# Clone model repository (example: TinyLlama)
-git clone https://huggingface.co/Pelochus/ezrkllm-collection
+The model zoo includes:
+- `quickstart/` directory with pre-built demo executables for Linux/Android
+- Pre-converted `.rkllm` models for various LLMs
 
-# If download fails, try:
-GIT_LFS_SKIP_SMUDGE=1 git clone https://huggingface.co/Pelochus/ezrkllm-collection
-cd ezrkllm-collection
-git lfs pull
-```
+### Supported Models
 
-### Available Pre-converted Models
-
-| Model | Size | RAM Required | Notes |
-|-------|------|--------------|-------|
-| TinyLlama 1.1B | ~1GB | 2-3GB | Very fast, basic tasks |
-| Phi-2 | ~2.5GB | 4-5GB | Good for coding |
-| Phi-3 Mini | ~3GB | 5-6GB | Balanced performance |
-| Gemma 2B | ~2GB | 3-4GB | Good quality |
-| Qwen 1.5 7B | ~7GB | 12-14GB | High quality |
+| Model | Model Size | Notes |
+|-------|------------|-------|
+| Qwen2/Qwen2.5/Qwen3 | 0.5B - 7B+ | General purpose, multilingual |
+| TinyLlama | 1.1B | Very fast, basic tasks |
+| Phi2/Phi3 | 2B - 3.8B | Good for coding |
+| Gemma2/Gemma3/Gemma3n | 2B | Good quality |
+| ChatGLM3 | 6B | Chinese + English |
+| InternLM2 | 1.8B | Research models |
+| MiniCPM3/MiniCPM4 | 0.5B - 4B | Efficient models |
+| DeepSeek-R1-Distill | Various | Reasoning tasks |
+| Qwen2-VL/Qwen3-VL | 2B - 3B | Vision-language models |
+| MiniCPM-V-2_6 | - | Vision-language model |
 
 ### Running Models
 
+**Option 1: Direct on Orange Pi (Recommended for Ubuntu setup)**
+
 ```bash
-# Navigate to model directory
-cd /path/to/model
+# Copy demo and model files to Orange Pi
+# From your PC:
+scp -r demo_Linux_aarch64 orange@orangepi-ip:~/
+scp model.rkllm orange@orangepi-ip:~/demo_Linux_aarch64/
 
-# Run the model
-rkllm your-model.rkllm
+# On Orange Pi:
+cd ~/demo_Linux_aarch64
+export LD_LIBRARY_PATH=./lib
 
-# Example with TinyLlama
-rkllm TinyLlama-1.1B-Chat-v1.0-rk3588-w8a8-opt-0-hybrid-ratio-0.0.rkllm
+# Run the demo
+./demo model.rkllm
+```
+
+**Option 2: Via ADB (for development/debugging)**
+
+```bash
+# If using ADB to connect to the device
+adb push ./demo_Linux_aarch64 /data
+adb push model.rkllm /data/demo_Linux_aarch64
+
+adb shell
+cd /data/demo_Linux_aarch64
+export LD_LIBRARY_PATH=./lib
+./demo model.rkllm
 ```
 
 ### Web UI (Optional)
@@ -101,17 +124,29 @@ If your desired model isn't available pre-converted, you can convert it yourself
 - **Model conversion must be done on x86_64 Linux**, not on the Orange Pi
 - The Orange Pi is used only for inference
 
-### Using Docker for Conversion
+### Installing RKLLM-Toolkit
 
-```bash
-# On your x86_64 Linux PC
-docker run -it pelochus/ezrkllm-toolkit:latest bash
+On your x86_64 Linux PC:
 
-# Inside the container:
-# 1. Download your model from Hugging Face
-# 2. Convert using RKLLM toolkit
-# 3. Copy the .rkllm file to your Orange Pi
-```
+1. Download the RKLLM-Toolkit from the official SDK:
+   - URL: https://console.zbox.filez.com/l/RJJDmB
+   - Fetch code: `rkllm`
+
+2. Extract the downloaded SDK and install the toolkit:
+   ```bash
+   # Navigate to the toolkit packages directory
+   cd rkllm-toolkit/packages/
+   
+   # List available wheel files and choose the one matching your Python version
+   ls rkllm_toolkit*.whl
+   
+   # Install the toolkit (example for Python 3.10)
+   # Replace the filename with the one matching your Python version
+   pip install rkllm_toolkit-1.2.3-cp310-cp310-linux_x86_64.whl
+   ```
+
+   **Note**: The wheel file name format is `rkllm_toolkit-{version}-cp{pyver}-cp{pyver}-linux_x86_64.whl`
+   where `{version}` is the SDK version and `{pyver}` is your Python version (39, 310, 311, or 312).
 
 ### Conversion Steps
 
@@ -170,24 +205,28 @@ uname -r
 
 ## Performance Comparison
 
-Typical inference speeds on Orange Pi 5 Max 16GB:
+Official benchmark results on RK3588 (from rknn-llm documentation):
 
-| Model | Method | Tokens/sec |
-|-------|--------|------------|
-| TinyLlama 1.1B | NPU | 25-35 |
-| TinyLlama 1.1B | Ollama (CPU) | 10-15 |
-| Phi-3 Mini | NPU | 15-25 |
-| Phi-3 Mini | Ollama (CPU) | 6-10 |
-| Qwen 7B | NPU | 8-12 |
-| Qwen 7B | Ollama (CPU) | 3-6 |
+| Model | Model Size | Dtype | TTFT(ms) | Tokens/s | Memory(MB) |
+|-------|------------|-------|----------|----------|------------|
+| Qwen2 | 0.5B | w8a8 | 144 | 42.6 | 654 |
+| TinyLLAMA | 1.1B | w8a8 | 239 | 24.5 | 1085 |
+| Qwen2.5 | 1.5B | w8a8 | 412 | 16.3 | 1659 |
+| InternLM2 | 1.8B | w8a8 | 374 | 15.6 | 1766 |
+| Gemma2 | 2B | w8a8 | 680 | 9.8 | 2765 |
+| Phi3 | 3.8B | w8a8 | 1022 | 7.5 | 3748 |
+| MiniCPM3 | 4B | w8a8 | 1386 | 6.0 | 4340 |
+| ChatGLM3 | 6B | w8a8 | 1395 | 4.9 | 5976 |
+
+*TTFT = Time To First Token. Performance tested with Seqlen=128, New_tokens=64.*
 
 *Actual performance may vary based on prompt length and system load.*
 
 ## Resources
 
-- [ezrknn-llm GitHub](https://github.com/Pelochus/ezrknn-llm)
-- [RKLLM Toolkit Documentation](https://github.com/airockchip/rknn-llm)
-- [Pre-converted Models (Hugging Face)](https://huggingface.co/Pelochus/ezrkllm-collection)
+- [RKLLM GitHub (Official)](https://github.com/airockchip/rknn-llm)
+- [RKLLM SDK Download](https://console.zbox.filez.com/l/RJJDmB) (Fetch code: rkllm)
+- [RKLLM Model Zoo](https://console.box.lenovo.com/l/l0tXb8) (Fetch code: rkllm)
 - [RKLLM-Gradio WebUI](https://github.com/c0zaut/RKLLM-Gradio)
 
 ## Integration with This Project
