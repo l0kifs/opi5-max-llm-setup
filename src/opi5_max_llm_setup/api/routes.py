@@ -22,7 +22,7 @@ from opi5_max_llm_setup.api.models import (
     SearchResult,
     StatsResponse,
 )
-from opi5_max_llm_setup.config.settings import get_settings
+from opi5_max_llm_setup.config.settings import LLMBackend, get_settings
 from opi5_max_llm_setup.llm.ollama_client import LLMNotInitializedError, OllamaClient
 from opi5_max_llm_setup.llm.rkllm_client import RKLLMClient, RKLLMNotAvailableError
 from opi5_max_llm_setup.rag.rag_pipeline import RAGPipeline
@@ -63,12 +63,12 @@ def get_llm_availability() -> tuple[str, bool]:
     settings = get_settings()
     backend = settings.llm_backend
 
-    if backend == "rkllm":
+    if backend == LLMBackend.RKLLM:
         rkllm = get_rkllm()
-        return ("rkllm", rkllm.is_available())
+        return (backend.value, rkllm.is_available())
     else:
         ollama = get_ollama()
-        return ("ollama", ollama.is_available())
+        return (backend.value, ollama.is_available())
 
 
 @router.get("/health", response_model=HealthResponse, tags=["Health"])
@@ -118,7 +118,7 @@ def chat_with_llm(
     backend = settings.llm_backend
 
     try:
-        if backend == "rkllm":
+        if backend == LLMBackend.RKLLM:
             if not rkllm.is_available():
                 return ChatResponse(
                     success=False,
@@ -255,7 +255,7 @@ def list_models(
     backend = settings.llm_backend
 
     try:
-        if backend == "rkllm":
+        if backend == LLMBackend.RKLLM:
             if not rkllm.is_available():
                 return ModelsResponse(
                     success=False,
@@ -301,13 +301,13 @@ def get_model_info(
     settings = get_settings()
     backend = settings.llm_backend
 
-    if backend == "rkllm":
+    if backend == LLMBackend.RKLLM:
         if not rkllm.is_available():
             raise HTTPException(
                 status_code=503,
                 detail="RKLLM is not available",
             )
-        info = rkllm.get_model_info()
+        info = rkllm.get_model_info(model_name)
         if info is None:
             raise HTTPException(
                 status_code=404, detail=f"Model '{model_name}' not found"

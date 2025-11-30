@@ -24,8 +24,7 @@ class TestSettings:
     def test_default_llm_backend_settings(self) -> None:
         """Test default LLM backend settings."""
         settings = get_settings()
-        assert settings.llm_backend == "ollama"
-        assert settings.llm_backend in ["ollama", "rkllm"]
+        assert settings.llm_backend.value == "ollama"
 
     def test_default_rkllm_settings(self) -> None:
         """Test default RKLLM settings."""

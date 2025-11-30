@@ -1,6 +1,5 @@
 from enum import Enum
 from pathlib import Path
-from typing import Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -43,8 +42,8 @@ class Settings(BaseSettings):
     api_port: int = Field(default=8000, description="API port")
 
     # LLM Backend settings
-    llm_backend: Literal["ollama", "rkllm"] = Field(
-        default="ollama",
+    llm_backend: LLMBackend = Field(
+        default=LLMBackend.OLLAMA,
         description="LLM backend to use: 'ollama' (CPU) or 'rkllm' (NPU, recommended)",
     )
 

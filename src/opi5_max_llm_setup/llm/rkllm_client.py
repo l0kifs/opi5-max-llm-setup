@@ -124,8 +124,12 @@ class RKLLMClient:
             "Use Ollama backend (LLM_BACKEND=ollama) or contribute RKLLM integration."
         )
 
-    def get_model_info(self) -> dict[str, Any] | None:
+    def get_model_info(self, model_name: str | None = None) -> dict[str, Any] | None:
         """Get information about the loaded RKLLM model.
+
+        Args:
+            model_name: Optional model name (for API compatibility, ignored for RKLLM
+                       as only one model is loaded at a time)
 
         Returns:
             Model information dictionary or None if not available
@@ -134,6 +138,7 @@ class RKLLMClient:
             return None
 
         return {
+            "name": model_name or self.model_path.stem,
             "model_path": str(self.model_path),
             "lib_path": str(self.lib_path),
             "backend": "rkllm",
