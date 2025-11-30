@@ -1,7 +1,16 @@
+from enum import Enum
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class LLMBackend(str, Enum):
+    """Supported LLM backends."""
+
+    OLLAMA = "ollama"
+    RKLLM = "rkllm"
 
 
 class Settings(BaseSettings):
@@ -33,6 +42,12 @@ class Settings(BaseSettings):
     api_host: str = Field(default="0.0.0.0", description="API host")
     api_port: int = Field(default=8000, description="API port")
 
+    # LLM Backend settings
+    llm_backend: Literal["ollama", "rkllm"] = Field(
+        default="ollama",
+        description="LLM backend to use: 'ollama' (CPU) or 'rkllm' (NPU, recommended)",
+    )
+
     # Ollama settings
     ollama_base_url: str = Field(
         default="http://localhost:11434", description="Ollama server URL"
@@ -45,6 +60,16 @@ class Settings(BaseSettings):
     )
     ollama_max_loaded_models: int = Field(
         default=1, description="Maximum number of loaded Ollama models"
+    )
+
+    # RKLLM settings (NPU acceleration)
+    rkllm_model_path: Path = Field(
+        default=Path("./models/model.rkllm"),
+        description="Path to the RKLLM model file (.rkllm)",
+    )
+    rkllm_lib_path: Path = Field(
+        default=Path("./lib"),
+        description="Path to RKLLM runtime libraries",
     )
 
     # Embedding settings

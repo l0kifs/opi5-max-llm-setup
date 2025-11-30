@@ -70,7 +70,8 @@ class StatsResponse(BaseModel):
     """Response model for pipeline statistics."""
 
     collection: dict[str, object]
-    ollama_available: bool
+    llm_backend: str
+    llm_available: bool
     model: str
     embedding_model: str
 
@@ -79,7 +80,8 @@ class HealthResponse(BaseModel):
     """Response model for health check."""
 
     status: str
-    ollama_available: bool
+    llm_backend: str
+    llm_available: bool
     version: str
 
 

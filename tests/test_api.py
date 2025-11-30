@@ -23,9 +23,11 @@ class TestHealthEndpoint:
 
         data = response.json()
         assert "status" in data
-        assert "ollama_available" in data
+        assert "llm_backend" in data
+        assert "llm_available" in data
         assert "version" in data
         assert data["status"] == "healthy"
+        assert data["llm_backend"] in ["ollama", "rkllm"]
 
 
 class TestRootEndpoint:

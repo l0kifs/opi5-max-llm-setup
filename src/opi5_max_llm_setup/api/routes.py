@@ -24,6 +24,7 @@ from opi5_max_llm_setup.api.models import (
 )
 from opi5_max_llm_setup.config.settings import get_settings
 from opi5_max_llm_setup.llm.ollama_client import LLMNotInitializedError, OllamaClient
+from opi5_max_llm_setup.llm.rkllm_client import RKLLMClient, RKLLMNotAvailableError
 from opi5_max_llm_setup.rag.rag_pipeline import RAGPipeline
 
 router = APIRouter()
@@ -41,19 +42,44 @@ def get_ollama() -> OllamaClient:
     return OllamaClient()
 
 
+@lru_cache
+def get_rkllm() -> RKLLMClient:
+    """Get or create RKLLM client instance (cached)."""
+    return RKLLMClient()
+
+
 # Type aliases for dependency injection
 RAGPipelineDep = Annotated[RAGPipeline, Depends(get_rag_pipeline)]
 OllamaClientDep = Annotated[OllamaClient, Depends(get_ollama)]
+RKLLMClientDep = Annotated[RKLLMClient, Depends(get_rkllm)]
+
+
+def get_llm_availability() -> tuple[str, bool]:
+    """Get LLM backend type and availability.
+
+    Returns:
+        Tuple of (backend_name, is_available)
+    """
+    settings = get_settings()
+    backend = settings.llm_backend
+
+    if backend == "rkllm":
+        rkllm = get_rkllm()
+        return ("rkllm", rkllm.is_available())
+    else:
+        ollama = get_ollama()
+        return ("ollama", ollama.is_available())
 
 
 @router.get("/health", response_model=HealthResponse, tags=["Health"])
 def health_check() -> HealthResponse:
-    """Check API health and Ollama availability."""
+    """Check API health and LLM backend availability."""
     settings = get_settings()
-    ollama = get_ollama()
+    backend, available = get_llm_availability()
     return HealthResponse(
         status="healthy",
-        ollama_available=ollama.is_available(),
+        llm_backend=backend,
+        llm_available=available,
         version=settings.app_version,
     )
 
@@ -81,21 +107,39 @@ def query_documents(
 def chat_with_llm(
     request: ChatRequest,
     ollama: OllamaClientDep,
+    rkllm: RKLLMClientDep,
 ) -> ChatResponse:
     """Chat directly with the LLM without RAG context.
 
     Use this for general questions that don't require document context.
+    Uses the configured LLM backend (ollama or rkllm).
     """
-    if not ollama.is_available():
-        return ChatResponse(
-            success=False,
-            error="Ollama server is not available",
-        )
+    settings = get_settings()
+    backend = settings.llm_backend
 
     try:
-        response = ollama.generate(request.prompt)
+        if backend == "rkllm":
+            if not rkllm.is_available():
+                return ChatResponse(
+                    success=False,
+                    error="RKLLM is not available. Check model path and NPU drivers.",
+                )
+            response = rkllm.generate(request.prompt)
+        else:
+            if not ollama.is_available():
+                return ChatResponse(
+                    success=False,
+                    error="Ollama server is not available",
+                )
+            response = ollama.generate(request.prompt)
+
         return ChatResponse(success=True, response=response)
-    except (LLMNotInitializedError, httpx.RequestError, RuntimeError) as e:
+    except (
+        LLMNotInitializedError,
+        RKLLMNotAvailableError,
+        httpx.RequestError,
+        RuntimeError,
+    ) as e:
         logger.error(f"Chat error: {e}")
         return ChatResponse(success=False, error=str(e))
 
@@ -190,34 +234,57 @@ def clear_documents(pipeline: RAGPipelineDep) -> dict[str, str]:
 def get_stats(pipeline: RAGPipelineDep) -> StatsResponse:
     """Get RAG pipeline statistics."""
     stats = pipeline.get_stats()
+    backend, available = get_llm_availability()
 
     return StatsResponse(
         collection=stats.get("collection", {}),
-        ollama_available=stats.get("ollama_available", False),
+        llm_backend=backend,
+        llm_available=available,
         model=stats.get("model", ""),
         embedding_model=stats.get("embedding_model", ""),
     )
 
 
 @router.get("/models", response_model=ModelsResponse, tags=["Models"])
-def list_models(ollama: OllamaClientDep) -> ModelsResponse:
-    """List available Ollama models."""
-    if not ollama.is_available():
-        return ModelsResponse(
-            success=False,
-            error="Ollama server is not available",
-        )
+def list_models(
+    ollama: OllamaClientDep,
+    rkllm: RKLLMClientDep,
+) -> ModelsResponse:
+    """List available models from the configured backend."""
+    settings = get_settings()
+    backend = settings.llm_backend
 
     try:
-        models_data = ollama.list_models()
-        models = [
-            ModelInfo(
-                name=m.get("name", ""),
-                modified_at=m.get("modified_at"),
-                size=m.get("size"),
-            )
-            for m in models_data
-        ]
+        if backend == "rkllm":
+            if not rkllm.is_available():
+                return ModelsResponse(
+                    success=False,
+                    error="RKLLM is not available. Check model path and NPU drivers.",
+                )
+            models_data = rkllm.list_models()
+            models = [
+                ModelInfo(
+                    name=m.get("name", ""),
+                    size=m.get("size"),
+                )
+                for m in models_data
+            ]
+        else:
+            if not ollama.is_available():
+                return ModelsResponse(
+                    success=False,
+                    error="Ollama server is not available",
+                )
+            models_data = ollama.list_models()
+            models = [
+                ModelInfo(
+                    name=m.get("name", ""),
+                    modified_at=m.get("modified_at"),
+                    size=m.get("size"),
+                )
+                for m in models_data
+            ]
+
         return ModelsResponse(success=True, models=models)
     except (httpx.RequestError, KeyError, RuntimeError) as e:
         logger.error(f"Error listing models: {e}")
@@ -225,13 +292,35 @@ def list_models(ollama: OllamaClientDep) -> ModelsResponse:
 
 
 @router.get("/models/{model_name}", tags=["Models"])
-def get_model_info(model_name: str, ollama: OllamaClientDep) -> dict[str, Any]:
+def get_model_info(
+    model_name: str,
+    ollama: OllamaClientDep,
+    rkllm: RKLLMClientDep,
+) -> dict[str, Any]:
     """Get information about a specific model."""
-    if not ollama.is_available():
-        raise HTTPException(status_code=503, detail="Ollama server is not available")
+    settings = get_settings()
+    backend = settings.llm_backend
 
-    info = ollama.get_model_info(model_name)
-    if info is None:
-        raise HTTPException(status_code=404, detail=f"Model '{model_name}' not found")
-
-    return info
+    if backend == "rkllm":
+        if not rkllm.is_available():
+            raise HTTPException(
+                status_code=503,
+                detail="RKLLM is not available",
+            )
+        info = rkllm.get_model_info()
+        if info is None:
+            raise HTTPException(
+                status_code=404, detail=f"Model '{model_name}' not found"
+            )
+        return info
+    else:
+        if not ollama.is_available():
+            raise HTTPException(
+                status_code=503, detail="Ollama server is not available"
+            )
+        info = ollama.get_model_info(model_name)
+        if info is None:
+            raise HTTPException(
+                status_code=404, detail=f"Model '{model_name}' not found"
+            )
+        return info
